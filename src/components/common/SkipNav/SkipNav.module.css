@@ -1,0 +1,22 @@
+.skipNav {
+  position: absolute;
+  top: -100%;
+  left: var(--space-4);
+  z-index: var(--z-tooltip);
+  padding: var(--space-3) var(--space-6);
+  background: var(--color-accent-cyan);
+  color: var(--color-text-inverse);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  text-decoration: none;
+  transition: top var(--transition-fast);
+  white-space: nowrap;
+}
+
+.skipNav:focus {
+  top: 0;
+  outline: 2px solid var(--color-accent-gold);
+  outline-offset: 2px;
+}
