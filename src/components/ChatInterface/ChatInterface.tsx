@@ -23,8 +23,6 @@ interface ChatInterfaceProps {
   title?: string;
   /** Optional placeholder text for the input field */
   placeholder?: string;
-  /** Show AI reasoning for jury evaluation */
-  showReasoning?: boolean;
 }
 
 /**
@@ -41,11 +39,9 @@ export default function ChatInterface({
   context,
   title = 'AI Assistant',
   placeholder = 'Ask me anything about the stadium...',
-  showReasoning = false,
 }: ChatInterfaceProps) {
   const { messages, isLoading, error, sendMessage, clearMessages, suggestions } = useChat(context);
   const [inputValue, setInputValue] = useState('');
-  const [expandedReasons, setExpandedReasons] = useState<Set<string>>(new Set());
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const [lastAnnouncement, setLastAnnouncement] = useState('');
@@ -94,19 +90,6 @@ export default function ChatInterface({
   const handleSuggestionClick = (suggestion: string) => {
     setInputValue('');
     sendMessage(suggestion);
-  };
-
-  /** Toggle expanded reasoning for a message */
-  const toggleReasoning = (messageId: string) => {
-    setExpandedReasons((prev) => {
-      const next = new Set(prev);
-      if (next.has(messageId)) {
-        next.delete(messageId);
-      } else {
-        next.add(messageId);
-      }
-      return next;
-    });
   };
 
   /** Render safe markdown-style bold syntax: **text** */
@@ -191,39 +174,6 @@ export default function ChatInterface({
                 )}
               </div>
               <p className={styles.messageText}>{renderFormattedMessage(message.content)}</p>
-
-              {/* AI Reasoning - Jury Demo Feature */}
-              {showReasoning && message.role === 'assistant' && (message.reasoning || message.structuredData) && (
-                <div className={styles.reasoningSection}>
-                  <button
-                    type="button"
-                    className={styles.reasoningToggle}
-                    onClick={() => toggleReasoning(message.id)}
-                    aria-expanded={expandedReasons.has(message.id)}
-                  >
-                    <span aria-hidden="true">{expandedReasons.has(message.id) ? '▼' : '▶'}</span>
-                    {' '}AI Reasoning
-                  </button>
-
-                  {expandedReasons.has(message.id) && (
-                    <div className={styles.reasoningContent}>
-                      {message.reasoning && (
-                        <div className={styles.reasoningText}>
-                          <strong>Why this response:</strong>
-                          <p>{message.reasoning}</p>
-                        </div>
-                      )}
-
-                      {message.structuredData && Object.keys(message.structuredData).length > 0 && (
-                        <div className={styles.structuredData}>
-                          <strong>Structured Data:</strong>
-                          <pre>{JSON.stringify(message.structuredData, null, 2)}</pre>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
           </div>
         ))}

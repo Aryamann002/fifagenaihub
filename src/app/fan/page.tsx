@@ -33,7 +33,6 @@ function FanPortalContent() {
 
   const [pendingChatQuery, setPendingChatQuery] = useState<string>('');
   const [activePanel, setActivePanel] = useState<'map' | 'green'>('map');
-  const [showReasoning, setShowReasoning] = useState(false);
 
   const chatContext: ChatContext = {
     stadiumId: stadium.id,
@@ -88,17 +87,6 @@ function FanPortalContent() {
             <option value="ko">한국어</option>
           </select>
 
-          <label htmlFor="reasoning-toggle" className="sr-only">Show AI reasoning</label>
-          <button
-            id="reasoning-toggle"
-            type="button"
-            className={`${styles.toggleBtn} ${showReasoning ? styles.toggleActive : ''}`}
-            onClick={() => setShowReasoning(!showReasoning)}
-            title="Show AI reasoning and structured data (jury demo feature)"
-          >
-            🧠 {showReasoning ? 'Hide' : 'Show'} Reasoning
-          </button>
-
           <label htmlFor="stadium-switcher" className="sr-only">Switch stadium</label>
           <select
             id="stadium-switcher"
@@ -128,7 +116,6 @@ function FanPortalContent() {
               context={chatContext}
               title="AI Concierge"
               placeholder="Ask about navigation, food, accessibility, transit..."
-              showReasoning={showReasoning}
             />
           </Suspense>
         </div>
