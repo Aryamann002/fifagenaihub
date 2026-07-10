@@ -28,10 +28,13 @@ function FanPortalContent() {
 
   const [pendingChatQuery, setPendingChatQuery] = useState<string>('');
   const [activePanel, setActivePanel] = useState<'map' | 'green'>('map');
+  const [showReasoning, setShowReasoning] = useState(false);
+  const [language, setLanguage] = useState<string>('en');
 
   const chatContext: ChatContext = {
     stadiumId: stadium.id,
     role: 'fan',
+    language: language !== 'en' ? language : undefined,
   };
 
   /** Called by StadiumMap when a zone is clicked — populates chat */
@@ -59,6 +62,35 @@ function FanPortalContent() {
           </div>
         </div>
         <div className={styles.headerRight}>
+          <label htmlFor="language-switcher" className="sr-only">Select language</label>
+          <select
+            id="language-switcher"
+            className={`${styles.stadiumSwitcher} input select`}
+            value={language}
+            onChange={(e) => setLanguage(e.target.value)}
+            title="Test GenAI in different languages"
+          >
+            <option value="en">English</option>
+            <option value="es">Español</option>
+            <option value="fr">Français</option>
+            <option value="pt">Português</option>
+            <option value="de">Deutsch</option>
+            <option value="ar">العربية</option>
+            <option value="ja">日本語</option>
+            <option value="ko">한국어</option>
+          </select>
+
+          <label htmlFor="reasoning-toggle" className="sr-only">Show AI reasoning</label>
+          <button
+            id="reasoning-toggle"
+            type="button"
+            className={`${styles.toggleBtn} ${showReasoning ? styles.toggleActive : ''}`}
+            onClick={() => setShowReasoning(!showReasoning)}
+            title="Show AI reasoning and structured data (jury demo feature)"
+          >
+            🧠 {showReasoning ? 'Hide' : 'Show'} Reasoning
+          </button>
+
           <label htmlFor="stadium-switcher" className="sr-only">Switch stadium</label>
           <select
             id="stadium-switcher"
@@ -84,6 +116,7 @@ function FanPortalContent() {
               context={chatContext}
               title="AI Concierge"
               placeholder="Ask about navigation, food, accessibility, transit..."
+              showReasoning={showReasoning}
             />
           </Suspense>
         </div>

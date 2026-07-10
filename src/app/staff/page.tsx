@@ -40,6 +40,7 @@ function StaffDashboardContent() {
   const stadium = STADIUMS.find((s) => s.id === stadiumId) ?? STADIUMS[0];
 
   const [dismissedAlerts, setDismissedAlerts] = useState<Set<string>>(new Set());
+  const [showReasoning, setShowReasoning] = useState(false);
 
   const chatContext: ChatContext = {
     stadiumId: stadium.id,
@@ -72,10 +73,20 @@ function StaffDashboardContent() {
         </div>
 
         <div className={styles.headerRight}>
+          <button
+            type="button"
+            className={`${styles.toggleBtn} ${showReasoning ? styles.toggleActive : ''}`}
+            onClick={() => setShowReasoning(!showReasoning)}
+            title="Show AI reasoning and structured data (jury demo feature)"
+          >
+            🧠 {showReasoning ? 'Hide' : 'Show'} Reasoning
+          </button>
+
           <div className={styles.staffBadge}>
             <span className={styles.staffDot} aria-hidden="true" />
             Staff Mode
           </div>
+
           <label htmlFor="staff-stadium-switcher" className="sr-only">Switch stadium</label>
           <select
             id="staff-stadium-switcher"
@@ -132,6 +143,7 @@ function StaffDashboardContent() {
               context={chatContext}
               title="Ops AI Assistant"
               placeholder="Query crowd density, gate flow, resource allocation..."
+              showReasoning={showReasoning}
             />
           </Suspense>
         </div>

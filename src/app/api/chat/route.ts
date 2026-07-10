@@ -86,6 +86,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       detectedLanguage: genAiResponse.detectedLanguage,
       confidence: genAiResponse.confidence,
       suggestions: genAiResponse.suggestions,
+      category: genAiResponse.category,
+      reasoning: genAiResponse.reasoning,
+      structuredData: genAiResponse.structuredData,
     };
 
     const response = NextResponse.json(responseBody, { status: 200 });

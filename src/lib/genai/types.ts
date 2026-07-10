@@ -28,6 +28,12 @@ export interface GenAIResponse {
   confidence: number;
   /** Follow-up question suggestions for the user */
   suggestions: string[];
+  /** Category of the detected query */
+  category?: QueryCategory;
+  /** AI reasoning: why this response was chosen */
+  reasoning?: string;
+  /** Structured data for complex queries (e.g., directions, food options) */
+  structuredData?: Record<string, unknown>;
 }
 
 /** Category of a user query for routing to appropriate response logic */

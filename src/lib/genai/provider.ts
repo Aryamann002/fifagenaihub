@@ -7,6 +7,7 @@
 
 import { GenAIContext, GenAIResponse } from './types';
 import { MockGenAIProvider } from './mock-provider';
+import { GeminiProvider } from './gemini-provider';
 
 /** Abstract interface for GenAI providers — enables clean provider swapping */
 export interface GenAIProvider {
@@ -21,12 +22,18 @@ export interface GenAIProvider {
  * Factory function that creates the appropriate GenAI provider
  * based on the GENAI_PROVIDER environment variable.
  *
+ * Supported providers:
+ * - 'mock' (default): Realistic mock responses without external API
+ * - 'gemini': Google Gemini API (requires GEMINI_API_KEY env var)
+ *
  * @returns A new GenAI provider instance
  */
 export function createGenAIProvider(): GenAIProvider {
   const providerType = process.env.GENAI_PROVIDER || 'mock';
 
   switch (providerType) {
+    case 'gemini':
+      return new GeminiProvider();
     case 'mock':
     default:
       return new MockGenAIProvider();

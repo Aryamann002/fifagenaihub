@@ -96,6 +96,9 @@ export function useChat(context: ChatContext): UseChatReturn {
           content: data.reply,
           timestamp: Date.now(),
           detectedLanguage: data.detectedLanguage,
+          category: data.category,
+          reasoning: data.reasoning,
+          structuredData: data.structuredData,
         };
 
         setMessages((prev) => [...prev, assistantMessage]);

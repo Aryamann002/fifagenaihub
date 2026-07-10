@@ -643,6 +643,38 @@ const STAFF_SUGGESTIONS: Record<QueryCategory, string[]> = {
   ],
 };
 
+/** System instructions for GenAI providers */
+const SYSTEM_INSTRUCTIONS = {
+  fan: (stadiumName: string, language: string) => `You are an expert FIFA World Cup 2026 fan assistant at ${stadiumName}.
+
+Your role: Help fans have an amazing match-day experience by providing accurate, friendly, and actionable guidance.
+
+Guidelines:
+- Be enthusiastic and welcoming
+- Provide specific, local details for ${stadiumName}
+- Offer pro tips and insider knowledge
+- Include relevant emojis for visual appeal
+- Keep responses concise and scannable
+- Respond in ${language || 'English'}
+- Offer 2-3 contextual follow-up suggestions
+
+Topics you can help with: Navigation, Food & Dining, Accessibility Services, Transit & Parking, Sustainability Initiatives, Match Information, Emergency Assistance.`,
+
+  staff: (stadiumName: string, _language: string) => `You are an expert FIFA World Cup 2026 operations assistant for ${stadiumName} staff.
+
+Your role: Provide real-time operational intelligence to optimize crowd flow, resource deployment, and event safety.
+
+Guidelines:
+- Deliver data-driven insights and metrics
+- Format operational data clearly (capacity %, crowd flow, incident status)
+- Provide actionable recommendations with specific steps
+- Use professional terminology and KPIs
+- Respond with urgency appropriate to the operational context
+- Reference departments and communication channels (Gates, F&B, Medical, Security, Transit, etc.)
+
+Topics you can help with: Staff Navigation, Concession Operations, Accessibility Services, Transit & Egress, Sustainability Metrics, Match Operations, Emergency Protocol, Crowd Management.`,
+};
+
 /**
  * Mock GenAI provider that generates realistic, context-aware responses
  * for FanHub 26. Supports language detection, query categorization, and
@@ -661,11 +693,11 @@ export class MockGenAIProvider implements GenAIProvider {
   /**
    * Generate a context-aware response to a user prompt.
    * Simulates real provider behavior with latency, language detection,
-   * query categorization, and role-based responses.
+   * query categorization, and role-based responses with reasoning.
    *
    * @param prompt - The user's input text
    * @param context - Contextual information (stadium, role, language, history)
-   * @returns A promise resolving to a GenAI response with reply, language, and suggestions
+   * @returns A promise resolving to a GenAI response with reply, language, reasoning, and suggestions
    */
   async generateResponse(
     prompt: string,
@@ -675,12 +707,26 @@ export class MockGenAIProvider implements GenAIProvider {
 
     const detectedLanguage = this.detectLanguage(prompt);
     const category = this.categorizeQuery(prompt);
+    const systemInstructions = SYSTEM_INSTRUCTIONS[context.role](
+      context.stadiumName,
+      context.language || 'English'
+    );
     const reply = this.buildResponse(prompt, context, category, detectedLanguage);
     const suggestions = this.generateSuggestions(context, category);
+    const reasoning = this.generateReasoning(prompt, category, context.role);
+    const structuredData = this.buildStructuredData(category, context);
 
     const confidence = category === 'general' ? 0.78 : 0.92;
 
-    return { reply, detectedLanguage, confidence, suggestions };
+    return {
+      reply,
+      detectedLanguage,
+      confidence,
+      suggestions,
+      category,
+      reasoning,
+      structuredData,
+    };
   }
 
   /**
@@ -807,5 +853,147 @@ export class MockGenAIProvider implements GenAIProvider {
     const count = 2 + Math.floor(Math.random() * 2); // 2 or 3
 
     return shuffled.slice(0, Math.min(count, shuffled.length));
+  }
+
+  /**
+   * Generate AI reasoning explaining why this response was chosen.
+   *
+   * @param prompt - The user's original prompt
+   * @param category - The detected query category
+   * @param role - The user's role (fan or staff)
+   * @returns Reasoning string explaining the AI's logic
+   */
+  private generateReasoning(
+    prompt: string,
+    category: QueryCategory,
+    role: 'fan' | 'staff'
+  ): string {
+    const keywords = prompt.toLowerCase().split(/\s+/).slice(0, 3).join(', ');
+    const roleDesc = role === 'fan' ? 'fan visitor' : 'operations staff';
+
+    return `Detected query category: "${category}" based on keywords (${keywords}). Generated ${roleDesc}-appropriate response with relevant details and actionable guidance.`;
+  }
+
+  /**
+   * Build structured data for complex queries to enable programmatic usage.
+   *
+   * @param category - The query category
+   * @param context - The GenAI context with stadium and role info
+   * @returns Structured data object for the response
+   */
+  private buildStructuredData(
+    category: QueryCategory,
+    context: GenAIContext
+  ): Record<string, unknown> {
+    const baseData = {
+      stadium: context.stadiumName,
+      stadiumId: context.stadiumId,
+      role: context.role,
+      category,
+      timestamp: new Date().toISOString(),
+    };
+
+    // Add category-specific structured data
+    switch (category) {
+      case 'navigation':
+        return {
+          ...baseData,
+          data: {
+            gates: ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'J'],
+            levels: [1, 2, 3],
+            amenities: {
+              restrooms: 'every gate entrance',
+              elevators: ['Gate A', 'Gate D', 'Gate G', 'Gate J'],
+              infokiosks: 'main concourse intersections',
+            },
+          },
+        };
+
+      case 'food':
+        return {
+          ...baseData,
+          data: {
+            outlets: 30,
+            cuisines: [
+              'American',
+              'Latin American',
+              'Asian Fusion',
+              'Mediterranean',
+            ],
+            dietary: ['Halal', 'Vegan', 'Vegetarian', 'Gluten-Free', 'Kosher'],
+            waterStations: 'Every gate entrance + 20+ concourse locations',
+            avgWaitMinutes: {
+              beforeKickoff: 5,
+              halftime: 15,
+              lateMatch: 3,
+            },
+          },
+        };
+
+      case 'transit':
+        return {
+          ...baseData,
+          data: {
+            parking: {
+              lots: ['A', 'B', 'C', 'D'],
+              costRange: '$40-60',
+              capacity: '65%',
+            },
+            publicTransit: {
+              nearestStation: '10-minute walk',
+              serviceFrequency: '5 minutes',
+              extended: true,
+            },
+            rideshare: 'Designated zone near Gate C',
+            shuttles: 'Free from city center, 4 hours pre-match',
+          },
+        };
+
+      case 'crowd_management':
+        return {
+          ...baseData,
+          data: {
+            currentCapacity: '55-75%',
+            gateDistribution: {
+              A: '78%',
+              B: '65%',
+              C: '42%',
+              recommended: ['C', 'F', 'H'],
+            },
+            bestArrivalTime: '2+ hours before kickoff',
+            peakTimes: ['30-60 min before kickoff', 'halftime'],
+          },
+        };
+
+      case 'match_info':
+        return {
+          ...baseData,
+          data: {
+            gateOpenTime: '3 hours before kickoff',
+            lineupAnnouncement: '1 hour before kickoff',
+            fanFestival: '4 hours before kickoff',
+            fanFestivalLocation: 'Plaza outside stadium',
+          },
+        };
+
+      case 'accessibility':
+        return {
+          ...baseData,
+          data: {
+            wheelchairSeating: 'Every section with companion seats',
+            elevators: ['Gate A', 'Gate D', 'Gate G', 'Gate J'],
+            accessibleParking: 'Lots A & B',
+            services: [
+              'Free loaner wheelchairs',
+              'Hearing assistance devices',
+              'Sensory room',
+              'Braille signage',
+            ],
+          },
+        };
+
+      default:
+        return baseData;
+    }
   }
 }
