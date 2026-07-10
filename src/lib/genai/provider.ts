@@ -34,7 +34,7 @@ export interface GenAIProvider {
  * @returns A new GenAI provider instance (never throws)
  */
 export function createGenAIProvider(): GenAIProvider {
-  const providerType = process.env.GENAI_PROVIDER || 'groq';
+  const providerType = process.env.GENAI_PROVIDER || 'mock';
 
   try {
     switch (providerType) {
