@@ -24,12 +24,16 @@ function FanPortalContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const stadiumId = searchParams.get('stadiumId') ?? STADIUMS[0].id;
+  const languageParam = searchParams.get('language');
+  const supportedLanguages = ['en', 'es', 'fr', 'pt', 'de', 'ar', 'ja', 'ko'] as const;
+  const language = supportedLanguages.includes((languageParam ?? 'en') as (typeof supportedLanguages)[number])
+    ? (languageParam ?? 'en')
+    : 'en';
   const stadium = STADIUMS.find((s) => s.id === stadiumId) ?? STADIUMS[0];
 
   const [pendingChatQuery, setPendingChatQuery] = useState<string>('');
   const [activePanel, setActivePanel] = useState<'map' | 'green'>('map');
   const [showReasoning, setShowReasoning] = useState(false);
-  const [language, setLanguage] = useState<string>('en');
 
   const chatContext: ChatContext = {
     stadiumId: stadium.id,
@@ -67,7 +71,11 @@ function FanPortalContent() {
             id="language-switcher"
             className={`${styles.stadiumSwitcher} input select`}
             value={language}
-            onChange={(e) => setLanguage(e.target.value)}
+            onChange={(e) =>
+              router.push(
+                `/fan?stadiumId=${encodeURIComponent(stadium.id)}&language=${encodeURIComponent(e.target.value)}`,
+              )
+            }
             title="Test GenAI in different languages"
           >
             <option value="en">English</option>
@@ -96,7 +104,11 @@ function FanPortalContent() {
             id="stadium-switcher"
             className={`${styles.stadiumSwitcher} input select`}
             value={stadiumId}
-            onChange={(e) => router.push(`/fan?stadiumId=${encodeURIComponent(e.target.value)}`)}
+            onChange={(e) =>
+              router.push(
+                `/fan?stadiumId=${encodeURIComponent(e.target.value)}&language=${encodeURIComponent(language)}`,
+              )
+            }
           >
             {STADIUMS.map((s) => (
               <option key={s.id} value={s.id}>

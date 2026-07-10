@@ -5,8 +5,6 @@
  * generated output is safe for rendering.
  */
 
-import DOMPurify from 'isomorphic-dompurify';
-
 /** Patterns that indicate prompt injection attempts */
 const INJECTION_PATTERNS: ReadonlyArray<{ pattern: RegExp; label: string }> = [
   { pattern: /ignore\s+(all\s+)?previous\s+instructions/i, label: 'ignore-instructions' },
@@ -93,12 +91,11 @@ export function sanitizeHtml(html: string): string {
     return '';
   }
 
-  return DOMPurify.sanitize(html, {
-    ALLOWED_TAGS: [
-      'b', 'i', 'em', 'strong', 'p', 'br', 'ul', 'ol', 'li',
-      'a', 'span', 'h1', 'h2', 'h3', 'h4', 'blockquote', 'code',
-    ],
-    ALLOWED_ATTR: ['href', 'target', 'rel', 'class'],
-    ALLOW_DATA_ATTR: false,
-  });
+  // Lightweight server-safe HTML sanitization that avoids DOM/jsdom dependencies.
+  const withoutScripts = html
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+    .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '');
+  const withoutEventHandlers = withoutScripts.replace(/\s+on\w+="[^"]*"/gi, '');
+  const withoutJsUris = withoutEventHandlers.replace(/javascript:/gi, '');
+  return withoutJsUris.replace(/<\/?[^>]+(>|$)/g, '').trim();
 }
