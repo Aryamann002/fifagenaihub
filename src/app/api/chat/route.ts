@@ -9,7 +9,7 @@ import { type NextRequest, NextResponse } from 'next/server';
 import { getGenAIProvider } from '@/lib/genai/provider';
 import { sanitizePrompt } from '@/lib/genai/sanitizer';
 import { validateChatMessage, validateChatContext } from '@/lib/security/input-validator';
-import { SECURITY_HEADERS } from '@/lib/security/headers';
+import { SECURITY_HEADERS, API_CACHE_HEADERS } from '@/lib/security/headers';
 import type { ChatRequest, ChatResponse } from '@/types';
 
 /**
@@ -91,7 +91,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       structuredData: genAiResponse.structuredData,
     };
 
-    const response = NextResponse.json(responseBody, { status: 200 });
+    const response = NextResponse.json(responseBody, {
+      status: 200,
+      headers: API_CACHE_HEADERS,
+    });
     return withSecurityHeaders(response);
   } catch {
     // Never expose internal error details

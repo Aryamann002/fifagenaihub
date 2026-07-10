@@ -9,7 +9,6 @@ import { type NextRequest, NextResponse } from 'next/server';
 import { generateCrowdData } from '@/lib/data/crowd-simulator';
 import { validateStadiumId } from '@/lib/security/input-validator';
 import { SECURITY_HEADERS } from '@/lib/security/headers';
-
 /**
  * Applies security headers to a NextResponse.
  */
