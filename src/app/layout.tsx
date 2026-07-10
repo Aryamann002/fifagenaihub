@@ -5,6 +5,7 @@
  */
 
 import type { Metadata, Viewport } from 'next';
+import { headers } from 'next/headers';
 import './globals.css';
 import SkipNav from '@/components/common/SkipNav/SkipNav';
 
@@ -38,16 +39,13 @@ export const viewport: Viewport = {
   themeColor: '#0a0e27',
 };
 
-/** Root layout props */
 interface RootLayoutProps {
   children: React.ReactNode;
 }
 
-/**
- * Root HTML layout wrapping all routes.
- * Provides skip navigation, semantic landmark regions, and global CSS.
- */
-export default function RootLayout({ children }: RootLayoutProps) {
+export default async function RootLayout({ children }: RootLayoutProps) {
+  const nonce = (await headers()).get('x-nonce') ?? '';
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -56,13 +54,11 @@ export default function RootLayout({ children }: RootLayoutProps) {
         <link
           href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap"
           rel="stylesheet"
+          nonce={nonce}
         />
       </head>
       <body>
-        {/* First focusable element — keyboard users can skip to main content */}
         <SkipNav />
-
-        {/* Main content landmark */}
         <main id="main-content" tabIndex={-1}>
           {children}
         </main>
