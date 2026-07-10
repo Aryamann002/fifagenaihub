@@ -416,6 +416,13 @@ a:hover {
   background-repeat: no-repeat;
   background-position: right var(--space-3) center;
   padding-right: var(--space-8);
+  color-scheme: dark;
+}
+
+.select option,
+.select optgroup {
+  background: #ffffff;
+  color: #0a0e27;
 }
 
 /* --- Badge --- */

@@ -8,6 +8,7 @@
 import { GenAIContext, GenAIResponse } from './types';
 import { MockGenAIProvider } from './mock-provider';
 import { GeminiProvider } from './gemini-provider';
+import { GroqProvider } from './groq-provider';
 
 /** Abstract interface for GenAI providers — enables clean provider swapping */
 export interface GenAIProvider {
@@ -23,20 +24,44 @@ export interface GenAIProvider {
  * based on the GENAI_PROVIDER environment variable.
  *
  * Supported providers:
- * - 'mock' (default): Realistic mock responses without external API
+ * - 'groq' (default): Groq API (requires GROQ_API_KEYS or GROQ_API_KEY)
+ * - 'mock': Realistic mock responses without external API
  * - 'gemini': Google Gemini API (requires GEMINI_API_KEY env var)
  *
- * @returns A new GenAI provider instance
+ * Falls back to mock provider if the requested provider is not available
+ * or misconfigured.
+ *
+ * @returns A new GenAI provider instance (never throws)
  */
 export function createGenAIProvider(): GenAIProvider {
-  const providerType = process.env.GENAI_PROVIDER || 'mock';
+  const providerType = process.env.GENAI_PROVIDER || 'groq';
 
-  switch (providerType) {
-    case 'gemini':
-      return new GeminiProvider();
-    case 'mock':
-    default:
-      return new MockGenAIProvider();
+  try {
+    switch (providerType) {
+      case 'groq': {
+        const groqKeys = process.env.GROQ_API_KEYS ?? process.env.GROQ_API_KEY;
+        if (!groqKeys || groqKeys.trim().length === 0) {
+          console.info('[Provider Factory] Groq not configured, using mock provider');
+          return new MockGenAIProvider();
+        }
+        return new GroqProvider();
+      }
+      case 'gemini': {
+        if (!process.env.GEMINI_API_KEY) {
+          console.info('[Provider Factory] Gemini not configured, using mock provider');
+          return new MockGenAIProvider();
+        }
+        return new GeminiProvider();
+      }
+      case 'mock':
+      default:
+        return new MockGenAIProvider();
+    }
+  } catch (error) {
+    console.error('[Provider Factory] Error creating provider:', error);
+    // Always fall back to mock on any error
+    console.info('[Provider Factory] Falling back to mock provider');
+    return new MockGenAIProvider();
   }
 }
 

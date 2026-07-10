@@ -157,8 +157,9 @@ Strategy-pattern provider interface enables clean swapping:
 
 ```
 GenAIProvider (interface)
-  └── MockGenAIProvider    ← Default (works without API keys)
-  └── [Future: Gemini]     ← Set GENAI_PROVIDER=gemini
+  └── GroqProvider         ← Default in production (set keys via env)
+  └── MockGenAIProvider    ← Safe fallback (works without API keys)
+  └── GeminiProvider       ← Optional
 ```
 
 The mock provider:
@@ -167,6 +168,22 @@ The mock provider:
 - Generates stadium-contextual responses
 - Responds in Spanish/French when detected
 - Simulates 200–800ms latency
+
+### Environment setup for Groq
+
+```bash
+# provider selection
+GENAI_PROVIDER=groq
+
+# use one key
+GROQ_API_KEY=your_key_here
+
+# or key pool (comma-separated) for rotation
+GROQ_API_KEYS=key1,key2,key3
+
+# optional model override
+GROQ_MODEL=llama-3.1-8b-instant
+```
 
 ---
 

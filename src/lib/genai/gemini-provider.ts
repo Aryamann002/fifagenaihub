@@ -40,16 +40,22 @@ Topics you can help with: Staff Navigation, Concession Operations, Accessibility
 /**
  * Real Gemini API provider for FanHub 26.
  * Requires GEMINI_API_KEY in environment.
+ * Falls back to mock if API key is not available.
  */
 export class GeminiProvider implements GenAIProvider {
   private apiKey: string;
   private baseUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent';
+  private isConfigured: boolean;
 
   constructor() {
     this.apiKey = process.env.GEMINI_API_KEY || '';
-    if (!this.apiKey) {
-      throw new Error(
-        'GEMINI_API_KEY environment variable is required for GeminiProvider'
+    this.isConfigured = Boolean(this.apiKey);
+    
+    // Don't throw — let caller decide how to handle missing config
+    if (!this.isConfigured) {
+      console.warn(
+        '[GeminiProvider] GEMINI_API_KEY not configured. Provider will not function. ' +
+        'Set GEMINI_API_KEY environment variable to enable Gemini integration.'
       );
     }
   }
@@ -74,6 +80,19 @@ export class GeminiProvider implements GenAIProvider {
     prompt: string,
     context: GenAIContext
   ): Promise<GenAIResponse> {
+    // If not configured, return error response instead of crashing
+    if (!this.isConfigured) {
+      return {
+        reply:
+          'Gemini provider is not configured. ' +
+          'Please set GEMINI_API_KEY environment variable. Using mock provider would be available as fallback.',
+        detectedLanguage: context.language || 'en',
+        confidence: 0,
+        suggestions: [],
+        reasoning: 'Error: Missing GEMINI_API_KEY configuration.',
+      };
+    }
+
     const systemInstructions = SYSTEM_INSTRUCTIONS[context.role](
       context.stadiumName,
       context.language || 'English'
@@ -108,7 +127,7 @@ export class GeminiProvider implements GenAIProvider {
       });
 
       if (!response.ok) {
-        const error = await response.json();
+        const error = await response.json().catch(() => ({}));
         console.error('Gemini API error:', error);
         throw new Error(`Gemini API error: ${response.statusText}`);
       }
@@ -128,7 +147,15 @@ export class GeminiProvider implements GenAIProvider {
       };
     } catch (error) {
       console.error('Gemini provider error:', error);
-      throw error;
+      // Return graceful error instead of throwing
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      return {
+        reply: `Error communicating with Gemini API: ${errorMsg}. Please try again or contact support.`,
+        detectedLanguage: context.language || 'en',
+        confidence: 0,
+        suggestions: [],
+        reasoning: `Gemini API error: ${errorMsg}`,
+      };
     }
   }
 
