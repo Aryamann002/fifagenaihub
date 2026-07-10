@@ -6,11 +6,12 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { getTodaysMatches, getLiveMatches } from '@/lib/data/matches';
 import { STADIUMS } from '@/lib/data/stadiums';
 import MatchCard from '@/components/MatchCard/MatchCard';
+import type { Match } from '@/types';
 import styles from './page.module.css';
 
 /**
@@ -21,8 +22,16 @@ export default function LandingPage() {
   const router = useRouter();
   const [selectedStadium, setSelectedStadium] = useState(STADIUMS[0].id);
 
-  const todaysMatches = getTodaysMatches();
-  const liveMatches = getLiveMatches();
+  // Defer date-sensitive calls to client-only to avoid SSR/hydration mismatch.
+  // On the server these start as [] so the conditional section won't render.
+  // After mount, useEffect populates them from the client's current Date.
+  const [todaysMatches, setTodaysMatches] = useState<Match[]>([]);
+  const [liveMatches, setLiveMatches] = useState<Match[]>([]);
+
+  useEffect(() => {
+    setTodaysMatches(getTodaysMatches());
+    setLiveMatches(getLiveMatches());
+  }, []);
 
   const navigateTo = (role: 'fan' | 'staff') => {
     router.push(`/${role}?stadiumId=${encodeURIComponent(selectedStadium)}`);

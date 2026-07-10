@@ -199,8 +199,8 @@ export default function CrowdPulse({ stadiumId }: CrowdPulseProps) {
                 return (
                   <tr key={zone.id}>
                     <td>{zone.name}</td>
-                    <td>{zone.currentOccupancy.toLocaleString()}</td>
-                    <td>{zone.maxCapacity.toLocaleString()}</td>
+                    <td>{zone.currentOccupancy.toLocaleString('en-US')}</td>
+                    <td>{zone.maxCapacity.toLocaleString('en-US')}</td>
                     <td>
                       <span className={styles.densityPill} style={{ color: meta.color, borderColor: meta.color }}>
                         {meta.label}

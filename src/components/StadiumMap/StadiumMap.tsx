@@ -70,7 +70,7 @@ export default function StadiumMap({ stadiumId, onZoneSelect }: StadiumMapProps)
         {stadium.name} — {stadium.city}, {stadium.country}
       </p>
       <p className={styles.capacity}>
-        Capacity: {stadium.capacity.toLocaleString()} seats
+        Capacity: {stadium.capacity.toLocaleString('en-US')} seats
       </p>
 
       {/* SVG Stadium Diagram */}

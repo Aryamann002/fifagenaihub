@@ -96,7 +96,7 @@ function StaffDashboardContent() {
       <div className={styles.statsBar} role="region" aria-label="Quick stats">
         <div className={styles.statCard}>
           <span className={styles.statLabel}>Capacity</span>
-          <span className={styles.statVal}>{stadium.capacity.toLocaleString()}</span>
+          <span className={styles.statVal}>{stadium.capacity.toLocaleString('en-US')}</span>
         </div>
         <div className={styles.statCard}>
           <span className={styles.statLabel}>Active Alerts</span>
