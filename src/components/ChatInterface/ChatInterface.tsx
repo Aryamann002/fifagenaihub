@@ -7,7 +7,7 @@
 
 'use client';
 
-import { useState, useRef, useEffect, type KeyboardEvent, type FormEvent } from 'react';
+import { useState, useRef, useEffect, type ReactNode, type KeyboardEvent, type FormEvent } from 'react';
 import { useChat } from '@/hooks/useChat';
 import type { ChatContext } from '@/types';
 import styles from './ChatInterface.module.css';
@@ -109,6 +109,17 @@ export default function ChatInterface({
     });
   };
 
+  /** Render safe markdown-style bold syntax: **text** */
+  const renderFormattedMessage = (content: string): ReactNode => {
+    const segments = content.split(/(\*\*[^*\n]+\*\*)/g);
+    return segments.map((segment, index) => {
+      if (/^\*\*[^*\n]+\*\*$/.test(segment)) {
+        return <strong key={`bold-${index}`}>{segment.slice(2, -2)}</strong>;
+      }
+      return <span key={`text-${index}`}>{segment}</span>;
+    });
+  };
+
   const characterCount = inputValue.length;
   const isOverLimit = characterCount > MAX_MESSAGE_LENGTH;
   const isInputEmpty = !inputValue.trim();
@@ -179,7 +190,7 @@ export default function ChatInterface({
                   </span>
                 )}
               </div>
-              <p className={styles.messageText}>{message.content}</p>
+              <p className={styles.messageText}>{renderFormattedMessage(message.content)}</p>
 
               {/* AI Reasoning - Jury Demo Feature */}
               {showReasoning && message.role === 'assistant' && (message.reasoning || message.structuredData) && (
