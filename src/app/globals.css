@@ -6,8 +6,8 @@
    accessibility utilities and responsive breakpoints.
    ============================================================ */
 
-/* --- Google Fonts Import --- */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap');
+/* Fonts are self-hosted via next/font in layout.tsx
+   (--font-inter and --font-outfit variables). */
 
 /* --- CSS Custom Properties (Design Tokens) --- */
 :root {
@@ -53,8 +53,8 @@
   --color-border-glow: rgba(0, 240, 255, 0.3);
 
   /* Typography */
-  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-heading: 'Outfit', 'Inter', sans-serif;
+  --font-body: var(--font-inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-heading: var(--font-outfit), var(--font-inter), sans-serif;
   --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
 
   /* Font Sizes — Fluid Scale */

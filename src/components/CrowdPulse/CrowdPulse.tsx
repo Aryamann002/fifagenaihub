@@ -7,7 +7,7 @@
 
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import type { CrowdData, CrowdZone } from '@/types';
 import LoadingSkeleton from '@/components/common/LoadingSkeleton/LoadingSkeleton';
 import styles from './CrowdPulse.module.css';
@@ -46,25 +46,31 @@ export default function CrowdPulse({ stadiumId }: CrowdPulseProps) {
   const [viewMode, setViewMode] = useState<ViewMode>('visual');
   const [isLoading, setIsLoading] = useState(true);
 
-  const fetchCrowdData = useCallback(async () => {
-    try {
-      const response = await fetch(`/api/crowd?stadiumId=${encodeURIComponent(stadiumId)}`);
-      if (response.ok) {
-        const data = (await response.json()) as CrowdData;
-        setCrowdData(data);
-      }
-    } catch {
-      // Silently retry on next interval — crowd data is best-effort
-    } finally {
-      setIsLoading(false);
-    }
-  }, [stadiumId]);
-
   useEffect(() => {
+    let ignore = false;
+
+    const fetchCrowdData = async () => {
+      try {
+        const response = await fetch(`/api/crowd?stadiumId=${encodeURIComponent(stadiumId)}`);
+        if (response.ok && !ignore) {
+          setCrowdData((await response.json()) as CrowdData);
+        }
+      } catch {
+        // Silently retry on next interval — crowd data is best-effort
+      } finally {
+        if (!ignore) {
+          setIsLoading(false);
+        }
+      }
+    };
+
     fetchCrowdData();
     const interval = setInterval(fetchCrowdData, 5000);
-    return () => clearInterval(interval);
-  }, [fetchCrowdData]);
+    return () => {
+      ignore = true;
+      clearInterval(interval);
+    };
+  }, [stadiumId]);
 
   if (isLoading) {
     return (

@@ -6,13 +6,23 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
 import { getTodaysMatches, getLiveMatches } from '@/lib/data/matches';
 import { STADIUMS } from '@/lib/data/stadiums';
 import MatchCard from '@/components/MatchCard/MatchCard';
-import type { Match } from '@/types';
 import styles from './page.module.css';
+
+const emptySubscribe = () => () => {};
+
+/** True after hydration — false during SSR and the first client render */
+function useHydrated(): boolean {
+  return useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false,
+  );
+}
 
 /**
  * Landing page with animated hero section, dual role-selection cards,
@@ -22,16 +32,11 @@ export default function LandingPage() {
   const router = useRouter();
   const [selectedStadium, setSelectedStadium] = useState(STADIUMS[0].id);
 
-  // Defer date-sensitive calls to client-only to avoid SSR/hydration mismatch.
-  // On the server these start as [] so the conditional section won't render.
-  // After mount, useEffect populates them from the client's current Date.
-  const [todaysMatches, setTodaysMatches] = useState<Match[]>([]);
-  const [liveMatches, setLiveMatches] = useState<Match[]>([]);
-
-  useEffect(() => {
-    setTodaysMatches(getTodaysMatches());
-    setLiveMatches(getLiveMatches());
-  }, []);
+  // Date-sensitive lists render client-only to avoid SSR/hydration mismatch:
+  // empty during SSR and hydration, derived from the client clock afterwards.
+  const hydrated = useHydrated();
+  const todaysMatches = hydrated ? getTodaysMatches() : [];
+  const liveMatches = hydrated ? getLiveMatches() : [];
 
   const navigateTo = (role: 'fan' | 'staff') => {
     router.push(`/${role}?stadiumId=${encodeURIComponent(selectedStadium)}`);
@@ -179,7 +184,7 @@ export default function LandingPage() {
       <footer className={styles.footer}>
         <p>
           FanHub 26 — GenAI-powered by{' '}
-          <span className={styles.footerAccent}>Mock AI Engine</span> (pluggable for Gemini / OpenAI)
+          <span className={styles.footerAccent}>Google Gemini</span> (with Groq and offline fallbacks)
         </p>
         <p className={styles.footerSmall}>
           Covering 16 venues across USA 🇺🇸 · Mexico 🇲🇽 · Canada 🇨🇦

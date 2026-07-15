@@ -16,6 +16,12 @@ export interface GenAIContext {
   language?: string;
   /** Conversation history for multi-turn context */
   previousMessages?: Array<{ role: 'user' | 'assistant'; content: string }>;
+  /**
+   * Live operational snapshot (crowd density per zone) injected for staff
+   * queries so LLM providers can ground answers in real-time data.
+   * Ignored by the offline mock provider.
+   */
+  liveOpsSummary?: string;
 }
 
 /** Response from the GenAI provider */
@@ -30,10 +36,6 @@ export interface GenAIResponse {
   suggestions: string[];
   /** Category of the detected query */
   category?: QueryCategory;
-  /** AI reasoning: why this response was chosen */
-  reasoning?: string;
-  /** Structured data for complex queries (e.g., directions, food options) */
-  structuredData?: Record<string, unknown>;
 }
 
 /** Category of a user query for routing to appropriate response logic */

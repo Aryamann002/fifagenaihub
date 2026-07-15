@@ -7,7 +7,7 @@
 
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useSyncExternalStore } from 'react';
 import type { AccessibilityPreferences } from '@/types';
 
 /** Default accessibility preferences */
@@ -20,6 +20,27 @@ const DEFAULT_PREFERENCES: AccessibilityPreferences = {
 /** localStorage key for persisting preferences */
 const STORAGE_KEY = 'fanhub26-a11y-prefs';
 
+const emptySubscribe = () => () => {};
+
+/**
+ * Resolves initial preferences from localStorage, falling back to system
+ * preferences. Returns defaults during SSR where neither is available.
+ */
+function getInitialPreferences(): AccessibilityPreferences {
+  if (typeof window === 'undefined') {
+    return DEFAULT_PREFERENCES;
+  }
+
+  const saved = loadSavedPreferences();
+  return {
+    highContrast:
+      saved?.highContrast ?? window.matchMedia('(prefers-contrast: more)').matches,
+    reducedMotion:
+      saved?.reducedMotion ?? window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+    fontSize: saved?.fontSize ?? 'normal',
+  };
+}
+
 /**
  * Manages accessibility preferences with system preference detection
  * and localStorage persistence. Applies CSS classes to the document root.
@@ -27,23 +48,18 @@ const STORAGE_KEY = 'fanhub26-a11y-prefs';
  * @returns Current preferences and toggle functions
  */
 export function useAccessibility() {
-  const [preferences, setPreferences] = useState<AccessibilityPreferences>(DEFAULT_PREFERENCES);
-  const [isLoaded, setIsLoaded] = useState(false);
+  const [preferences, setPreferences] = useState<AccessibilityPreferences>(getInitialPreferences);
 
-  // Load saved preferences and detect system preferences on mount
+  // False during SSR and hydration so consumers can defer rendering
+  // controls whose state only exists on the client.
+  const isLoaded = useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false,
+  );
+
+  // Subscribe to system preference changes
   useEffect(() => {
-    const saved = loadSavedPreferences();
-    const systemReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const systemHighContrast = window.matchMedia('(prefers-contrast: more)').matches;
-
-    setPreferences({
-      highContrast: saved?.highContrast ?? systemHighContrast,
-      reducedMotion: saved?.reducedMotion ?? systemReducedMotion,
-      fontSize: saved?.fontSize ?? 'normal',
-    });
-    setIsLoaded(true);
-
-    // Listen for system preference changes
     const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
     const contrastQuery = window.matchMedia('(prefers-contrast: more)');
 
@@ -64,10 +80,8 @@ export function useAccessibility() {
     };
   }, []);
 
-  // Apply CSS classes to document root when preferences change
+  // Apply CSS classes to document root and persist when preferences change
   useEffect(() => {
-    if (!isLoaded) return;
-
     const root = document.documentElement;
 
     root.classList.toggle('high-contrast', preferences.highContrast);
@@ -75,7 +89,7 @@ export function useAccessibility() {
     root.classList.toggle('font-extra-large', preferences.fontSize === 'extra-large');
 
     savePreferences(preferences);
-  }, [preferences, isLoaded]);
+  }, [preferences]);
 
   /** Toggle high contrast mode */
   const toggleHighContrast = useCallback(() => {

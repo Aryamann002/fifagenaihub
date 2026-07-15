@@ -10,7 +10,6 @@ const config: Config = {
   setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
-    '^isomorphic-dompurify$': '<rootDir>/src/__mocks__/isomorphic-dompurify.js',
   },
   testPathIgnorePatterns: ['<rootDir>/node_modules/', '<rootDir>/.next/'],
   testMatch: ['**/*.test.ts', '**/*.test.tsx'],

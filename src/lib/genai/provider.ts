@@ -24,17 +24,17 @@ export interface GenAIProvider {
  * based on the GENAI_PROVIDER environment variable.
  *
  * Supported providers:
- * - 'groq' (default): Groq API (requires GROQ_API_KEYS or GROQ_API_KEY)
- * - 'mock': Realistic mock responses without external API
- * - 'gemini': Google Gemini API (requires GEMINI_API_KEY env var)
+ * - 'gemini' (default): Google Gemini API (requires GEMINI_API_KEY)
+ * - 'groq': Groq API (requires GROQ_API_KEYS or GROQ_API_KEY)
+ * - 'mock': Realistic offline responses without an external API
  *
- * Falls back to mock provider if the requested provider is not available
- * or misconfigured.
+ * Falls back to the mock provider if the requested provider is not
+ * configured, so the app always works — including offline demos.
  *
  * @returns A new GenAI provider instance (never throws)
  */
 export function createGenAIProvider(): GenAIProvider {
-  const providerType = process.env.GENAI_PROVIDER || 'mock';
+  const providerType = process.env.GENAI_PROVIDER || 'gemini';
 
   try {
     switch (providerType) {

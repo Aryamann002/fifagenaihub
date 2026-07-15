@@ -2,181 +2,124 @@
 
 ## Status: BUILD COMPLETE ✅
 
-**Last Updated:** 2026-07-09  
-**Build Status:** PASSING (Next.js build ✅, 58 tests ✅, TypeScript ✅)
-
----
-
-## Project Location
-```
-C:\Users\Aryamann Sharma\.gemini\antigravity\scratch\fifa-genai-hub
-```
+**Last Updated:** 2026-07-15
+**Build Status:** PASSING (Next.js build ✅, 113 tests ✅, TypeScript ✅)
 
 ---
 
 ## What is this?
 
-FanHub 26 is a **Next.js 16 + TypeScript** GenAI-powered stadium companion for the FIFA World Cup 2026. It provides:
-- Fan portal: multilingual AI chat, interactive SVG stadium map, green sustainability score, live match feed
-- Staff dashboard: real-time crowd pulse, operational AI, alert feed, stats bar
+FanHub 26 is a **Next.js 16 + TypeScript** GenAI-powered stadium companion for the FIFA World Cup 2026:
+- Fan portal: multilingual AI chat, interactive SVG stadium map (with Google Maps directions), green sustainability score, live match feed
+- Staff dashboard: real-time crowd pulse, operational AI grounded in live crowd data, alert feed, stats bar
+- Floating accessibility toolbar (high contrast + font size) on every page
 
 ---
 
-## Current File Tree (Complete)
+## File Tree (source only)
 
 ```
 src/
-├── __mocks__/
-│   └── isomorphic-dompurify.js     ← Jest mock (plain JS, no TS types)
 ├── app/
 │   ├── api/
-│   │   ├── chat/route.ts           ← POST /api/chat
-│   │   └── crowd/route.ts          ← GET /api/crowd?stadiumId=
-│   ├── fan/
-│   │   ├── page.tsx                ← Fan portal (3-panel layout)
-│   │   └── page.module.css
-│   ├── staff/
-│   │   ├── page.tsx                ← Staff dashboard
-│   │   └── page.module.css
+│   │   ├── chat/route.ts           ← POST /api/chat (+ route.test.ts)
+│   │   └── crowd/route.ts          ← GET /api/crowd?stadiumId= (+ route.test.ts)
+│   ├── fan/page.tsx                ← Fan portal (chat + map/green tabs)
+│   ├── staff/page.tsx              ← Staff dashboard
 │   ├── globals.css                 ← Full design system (DO NOT DELETE)
-│   ├── layout.tsx                  ← Root layout + SEO
-│   ├── page.tsx                    ← Landing page (role selector)
-│   └── page.module.css
+│   ├── layout.tsx                  ← Root layout + SEO + A11yToolbar
+│   └── page.tsx                    ← Landing page (role selector)
 ├── components/
-│   ├── ChatInterface/
-│   │   ├── ChatInterface.tsx       ← Main chat UI (useChat hook)
-│   │   └── ChatInterface.module.css
-│   ├── CrowdPulse/
-│   │   ├── CrowdPulse.tsx          ← Staff crowd density dashboard
-│   │   └── CrowdPulse.module.css
-│   ├── GreenScore/
-│   │   ├── GreenScore.tsx          ← Sustainability score component
-│   │   └── GreenScore.module.css
-│   ├── MatchCard/
-│   │   ├── MatchCard.tsx           ← Match info card
-│   │   └── MatchCard.module.css
-│   ├── StadiumMap/
-│   │   ├── StadiumMap.tsx          ← Interactive SVG stadium map
-│   │   └── StadiumMap.module.css
+│   ├── ChatInterface/              ← Chat UI; accepts pendingQuery prop
+│   ├── CrowdPulse/                 ← Staff crowd dashboard (5s polling)
+│   ├── GreenScore/                 ← Sustainability score
+│   ├── MatchCard/                  ← Match info card
+│   ├── StadiumMap/                 ← SVG map; zone click → chat query;
+│   │                                 Google Maps directions link
 │   └── common/
+│       ├── A11yToolbar/            ← High contrast + font size controls
 │       ├── LoadingSkeleton/
-│       │   ├── LoadingSkeleton.tsx
-│       │   └── LoadingSkeleton.module.css
 │       └── SkipNav/
-│           ├── SkipNav.tsx
-│           └── SkipNav.module.css
 ├── hooks/
-│   ├── useAccessibility.ts
-│   ├── useChat.ts                  ← AbortController, optimistic updates
-│   └── useDebounce.ts
+│   ├── useAccessibility.ts         ← Used by A11yToolbar
+│   └── useChat.ts                  ← AbortController, optimistic updates
 ├── lib/
 │   ├── data/
-│   │   ├── crowd-simulator.ts      ← Time-aware crowd simulation
-│   │   ├── crowd-simulator.test.ts ← 8 passing tests
+│   │   ├── crowd-simulator.ts      ← Time-aware crowd simulation (+ tests)
 │   │   ├── matches.ts              ← 20 sample matches
 │   │   ├── stadiums.ts             ← All 16 FIFA 2026 venues
 │   │   └── sustainability.ts       ← Green score calculator
 │   ├── genai/
-│   │   ├── mock-data-fan.ts
-│   │   ├── mock-data-staff.ts
-│   │   ├── mock-provider.ts        ← Full AI simulation engine
-│   │   ├── provider.ts             ← Strategy pattern factory
-│   │   ├── sanitizer.ts            ← Prompt injection prevention
-│   │   ├── sanitizer.test.ts       ← 15 passing tests
+│   │   ├── gemini-provider.ts      ← Google Gemini (DEFAULT provider)
+│   │   ├── groq-provider.ts        ← Groq alternative
+│   │   ├── mock-provider.ts        ← Offline fallback engine (+ tests)
+│   │   ├── provider.ts             ← Strategy-pattern factory
+│   │   ├── shared.ts               ← Shared prompts, detectCategory,
+│   │   │                             extractSuggestions (+ tests)
+│   │   ├── sanitizer.ts            ← Prompt injection prevention (+ tests)
 │   │   └── types.ts
 │   └── security/
-│       ├── headers.ts              ← Security HTTP headers
-│       ├── input-validator.ts      ← Full context validation (role+stadiumId)
-│       ├── input-validator.test.ts ← 18 passing tests
-│       ├── rate-limiter.ts         ← Token-bucket rate limiter
-│       └── rate-limiter.test.ts    ← 7 passing tests
-└── types/
-    └── index.ts                    ← All shared TypeScript types
+│       ├── input-validator.ts      ← Message/context validation (+ tests)
+│       └── rate-limiter.ts         ← Token-bucket rate limiter (+ tests)
+└── types/index.ts                  ← All shared TypeScript types
 
 Root:
-├── middleware.ts                   ← Edge middleware (rate limit + headers)
-├── next.config.ts                  ← AVIF/WebP images, strict mode
-├── jest.config.ts                  ← setupFilesAfterEnv, moduleNameMapper
-├── jest.setup.ts                   ← Testing-library + jest-axe setup
-├── tsconfig.json                   ← paths: { "@/*": ["./src/*"] }
-├── .env.local                      ← GENAI_PROVIDER=mock
-├── .prettierrc
-└── README.md
+├── middleware.ts                   ← Rate limiting + nonce-based CSP + security headers
+├── next.config.ts                  ← AVIF/WebP images, strict mode (no headers here)
+├── jest.config.ts / jest.setup.ts
+└── .env.local                      ← Local provider config (not committed)
 ```
 
 ---
 
 ## Key Technical Decisions
 
-### Jest Mock for isomorphic-dompurify
-`src/__mocks__/isomorphic-dompurify.js` is a **plain JavaScript** file (no TypeScript).
-It must stay as `.js` — if you convert to `.ts`, SWC will fail to parse it because the ESM deps cause issues.
+### GenAI provider selection
+`GENAI_PROVIDER` env var: `gemini` (default) | `groq` | `mock`.
+The factory in `provider.ts` falls back to the mock provider whenever the
+selected provider's API key is missing — the app must always work offline.
+Shared prompt templates and query categorization live in `lib/genai/shared.ts`;
+providers must not duplicate them.
+
+### Real-time decision support
+`/api/chat` resolves the stadium name via `getStadiumById` and, for staff
+queries, injects a live crowd snapshot (`GenAIContext.liveOpsSummary`) so
+LLM providers ground operational answers in current zone data.
+
+### Security headers
+All security headers (including the nonce-based CSP) are set in
+`middleware.ts`. `next.config.ts` intentionally has none. The nonce flows
+to `layout.tsx` via the `x-nonce` request header.
 
 ### validateChatContext
-The function now validates **required** fields:
-- `stadiumId`: required, must be non-empty string
-- `role`: required, must be `'fan'` or `'staff'`
-- `language`: optional
-
-If `null` is passed, returns `isValid: false` (not valid).
+Required fields: `stadiumId` (non-empty string) and `role` (`fan`|`staff`);
+`language` is optional. `null` input → `isValid: false`.
 
 ### Stadium IDs
-Stadiums have short IDs: `metlife`, `sofi`, `att`, `hardrock`, `nrg`, `mercedesbenz`, `levis`, `lincoln`, `gillette`, `lumen`, `arrowhead`, `azteca`, `akron`, `bbva`, `bmo`, `bcplace`
-
-The `validateStadiumId` regex: `/^[a-zA-Z0-9-]{1,50}$/`
+`metlife`, `sofi`, `att`, `hardrock`, `nrg`, `mercedesbenz`, `levis`,
+`lincoln`, `gillette`, `lumen`, `arrowhead`, `azteca`, `akron`, `bbva`,
+`bmo`, `bcplace`. Format regex: `/^[a-zA-Z0-9-]{1,50}$/`.
 
 ### Crowd Simulator
-Generates time-aware data based on UTC time relative to a 20:00 kickoff. Six phases: `pre_match`, `kickoff`, `first_half`, `halftime`, `second_half`, `post_match`.
+Time-aware data keyed to a 20:00 UTC kickoff. Six phases: `pre_match`,
+`kickoff`, `first_half`, `halftime`, `second_half`, `post_match`.
 
 ---
 
 ## Test Results (as of last run)
 ```
-PASS src/lib/genai/sanitizer.test.ts
-PASS src/lib/data/crowd-simulator.test.ts  
-PASS src/lib/security/input-validator.test.ts
-PASS src/lib/security/rate-limiter.test.ts
-
-Test Suites: 4 passed, 4 total
-Tests:       58 passed, 58 total
+Test Suites: 8 passed, 8 total
+Tests:       113 passed, 113 total
 ```
-
-## Build Results
-```
-Route (app)
-┌ ○ /
-├ ○ /_not-found
-├ ƒ /api/chat
-├ ƒ /api/crowd
-├ ○ /fan
-└ ○ /staff
-```
-
----
-
-## What Still Could Be Done (Optional Improvements)
-
-1. **Component tests** — `MatchCard.test.tsx`, `GreenScore.test.tsx` using `@testing-library/react`
-2. **Accessibility tests** — `jest-axe` for ARIA violation checking
-3. **E2E tests** — Playwright or Cypress for full user journey tests
-4. **Real GenAI integration** — Add Gemini provider in `src/lib/genai/provider.ts`
-5. **Error boundaries** — `error.tsx` files in app route segments
-6. **Loading states** — `loading.tsx` files for streaming Suspense
+API route tests run under `@jest-environment node` (docblock per file).
 
 ---
 
 ## Running the App
 
 ```bash
-# Development
-npm run dev
-
-# Tests
-npm test
-
-# Build (validates everything)
-npm run build
-
-# Type check
-npm run type-check
+npm run dev          # Development
+npm test             # Tests
+npm run build        # Build (validates everything)
+npm run type-check   # TypeScript
 ```

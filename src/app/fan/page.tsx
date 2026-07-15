@@ -40,10 +40,14 @@ function FanPortalContent() {
     language: language !== 'en' ? language : undefined,
   };
 
-  /** Called by StadiumMap when a zone is clicked — populates chat */
+  /** Called by StadiumMap when a zone is clicked — sends the query to the chat */
   const handleZoneSelect = useCallback((query: string) => {
     setPendingChatQuery(query);
-    setActivePanel('map');
+  }, []);
+
+  /** Called by ChatInterface once the injected query has been dispatched */
+  const handlePendingQueryHandled = useCallback(() => {
+    setPendingChatQuery('');
   }, []);
 
   return (
@@ -116,6 +120,8 @@ function FanPortalContent() {
               context={chatContext}
               title="AI Concierge"
               placeholder="Ask about navigation, food, accessibility, transit..."
+              pendingQuery={pendingChatQuery}
+              onPendingQueryHandled={handlePendingQueryHandled}
             />
           </Suspense>
         </div>
@@ -163,13 +169,6 @@ function FanPortalContent() {
           )}
         </div>
       </div>
-
-      {/* Hidden pending query processor — populates chat from map interaction */}
-      {pendingChatQuery && (
-        <div aria-live="polite" className="sr-only">
-          Chat query ready: {pendingChatQuery}
-        </div>
-      )}
     </div>
   );
 }

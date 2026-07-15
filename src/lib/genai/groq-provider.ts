@@ -1,32 +1,12 @@
 /**
  * @module Groq GenAI Provider
- * Real Groq API integration for FanHub 26.
+ * Groq API integration for FanHub 26.
  * Requires GROQ_API_KEYS (comma-separated) or GROQ_API_KEY.
  */
 
 import { GenAIProvider } from './provider';
-import { GenAIContext, GenAIResponse, QueryCategory } from './types';
-
-const SYSTEM_INSTRUCTIONS = {
-  fan: (stadiumName: string, language: string) => `You are an expert FIFA World Cup 2026 fan assistant at ${stadiumName}.
-
-Your role: Help fans with clear, practical, and friendly guidance.
-
-Guidelines:
-- Be concise and actionable
-- Use specific venue-aware details
-- Respond in ${language || 'English'}
-- Keep a welcoming tone`,
-
-  staff: (stadiumName: string, _language: string) => `You are an expert FIFA World Cup 2026 operations assistant for ${stadiumName} staff.
-
-Your role: Provide clear, data-oriented operational guidance.
-
-Guidelines:
-- Prioritize safety and operational clarity
-- Use concise KPI-oriented wording
-- Give practical next-step recommendations`,
-};
+import { GenAIContext, GenAIResponse } from './types';
+import { SYSTEM_INSTRUCTIONS, detectCategory, extractSuggestions } from './shared';
 
 const DEFAULT_MODEL = 'llama-3.1-8b-instant';
 const GROQ_CHAT_URL = 'https://api.groq.com/openai/v1/chat/completions';
@@ -56,16 +36,18 @@ export class GroqProvider implements GenAIProvider {
         detectedLanguage: context.language || 'en',
         confidence: 0,
         suggestions: [],
-        reasoning: 'Error: Missing Groq API credentials.',
       };
     }
 
-    const systemMessage = SYSTEM_INSTRUCTIONS[context.role](
+    let systemMessage = SYSTEM_INSTRUCTIONS[context.role](
       context.stadiumName,
       context.language || 'English',
     );
+    if (context.liveOpsSummary) {
+      systemMessage += `\n\nLive operational snapshot (use this real-time data in your answer):\n${context.liveOpsSummary}`;
+    }
 
-    const category = this.detectCategory(prompt);
+    const category = detectCategory(prompt);
     const messages = this.buildMessages(prompt, systemMessage, context);
 
     try {
@@ -99,9 +81,8 @@ export class GroqProvider implements GenAIProvider {
         reply,
         detectedLanguage: context.language || 'en',
         confidence: 0.94,
-        suggestions: this.extractSuggestions(reply),
+        suggestions: extractSuggestions(reply),
         category,
-        reasoning: `Generated with Groq model ${this.model} for ${context.role} at ${context.stadiumName}.`,
       };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown Groq API error';
@@ -112,7 +93,6 @@ export class GroqProvider implements GenAIProvider {
         confidence: 0,
         suggestions: [],
         category,
-        reasoning: `Groq request failed: ${errorMessage}`,
       };
     }
   }
@@ -143,42 +123,5 @@ export class GroqProvider implements GenAIProvider {
 
     messages.push({ role: 'user', content: prompt });
     return messages;
-  }
-
-  private extractSuggestions(reply: string): string[] {
-    const candidates = reply
-      .split('\n')
-      .map((line) => line.trim())
-      .filter((line) => line.endsWith('?'))
-      .slice(0, 3);
-
-    if (candidates.length > 0) {
-      return candidates;
-    }
-
-    return ['Need directions?', 'Want accessibility help?', 'Need live crowd info?'];
-  }
-
-  private detectCategory(text: string): QueryCategory {
-    const lower = text.toLowerCase();
-    const map: Record<QueryCategory, string[]> = {
-      navigation: ['where', 'find', 'gate', 'section', 'seat', 'map', 'direction'],
-      food: ['food', 'eat', 'drink', 'restaurant', 'halal', 'vegan', 'menu'],
-      accessibility: ['wheelchair', 'accessible', 'disability', 'hearing', 'sensory'],
-      transit: ['parking', 'bus', 'train', 'metro', 'rideshare', 'taxi'],
-      sustainability: ['green', 'recycle', 'sustainable', 'carbon', 'eco'],
-      match_info: ['match', 'score', 'kickoff', 'lineup', 'team', 'schedule'],
-      emergency: ['emergency', 'medical', 'help', 'fire', 'security', 'danger'],
-      crowd_management: ['crowd', 'density', 'queue', 'wait', 'flow', 'capacity'],
-      general: [],
-    };
-
-    for (const [category, keywords] of Object.entries(map)) {
-      if (keywords.some((kw) => lower.includes(kw))) {
-        return category as QueryCategory;
-      }
-    }
-
-    return 'general';
   }
 }

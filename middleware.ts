@@ -48,8 +48,8 @@ export function middleware(request: NextRequest): NextResponse {
   const csp = [
     `default-src 'self'`,
     `script-src 'self' 'nonce-${nonce}'`,
-    `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com`,
-    `font-src 'self' https://fonts.gstatic.com`,
+    `style-src 'self' 'unsafe-inline'`,
+    `font-src 'self'`,
     `img-src 'self' data: blob:`,
     `connect-src 'self'`,
     `frame-ancestors 'none'`,
@@ -58,13 +58,14 @@ export function middleware(request: NextRequest): NextResponse {
     `object-src 'none'`,
   ].join('; ');
 
+  // The CSP must also be on the *request* headers: Next.js reads the nonce
+  // from there and applies it to its own inline scripts during rendering.
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set('x-nonce', nonce);
+  requestHeaders.set('Content-Security-Policy', csp);
+
   const response = NextResponse.next({
-    request: {
-      headers: new Headers({
-        ...Object.fromEntries(request.headers),
-        'x-nonce': nonce,
-      }),
-    },
+    request: { headers: requestHeaders },
   });
 
   response.headers.set('Content-Security-Policy', csp);

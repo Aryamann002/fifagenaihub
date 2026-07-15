@@ -2,7 +2,7 @@
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript)](https://www.typescriptlang.org/)
 [![Next.js](https://img.shields.io/badge/Next.js-16-000000?logo=next.js)](https://nextjs.org/)
-[![Tests](https://img.shields.io/badge/Tests-58%20passing-brightgreen)](/)
+[![Tests](https://img.shields.io/badge/Tests-113%20passing-brightgreen)](/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 > **AI-powered stadium companion** delivering real-time multilingual assistance, crowd intelligence, interactive navigation, and sustainability tracking across all 16 FIFA World Cup 2026 venues.
@@ -62,8 +62,7 @@ FanHub 26 solves all of these with a single, AI-powered interface.
 │   │   └── common/                  # SkipNav, LoadingSkeleton
 │   ├── hooks/
 │   │   ├── useChat.ts               # Chat state + AbortController
-│   │   ├── useDebounce.ts           # Debounced value hook
-│   │   └── useAccessibility.ts      # ARIA and accessibility utilities
+│   │   └── useAccessibility.ts      # High contrast / font size preferences
 │   ├── lib/
 │   │   ├── data/
 │   │   │   ├── stadiums.ts          # All 16 FIFA 2026 venues
@@ -72,12 +71,14 @@ FanHub 26 solves all of these with a single, AI-powered interface.
 │   │   │   └── crowd-simulator.ts   # Time-aware crowd simulation
 │   │   ├── genai/
 │   │   │   ├── provider.ts          # Provider interface + factory
-│   │   │   ├── mock-provider.ts     # Full-featured mock AI engine
+│   │   │   ├── gemini-provider.ts   # Google Gemini (default)
+│   │   │   ├── groq-provider.ts     # Groq (alternative)
+│   │   │   ├── mock-provider.ts     # Offline mock AI engine (fallback)
+│   │   │   ├── shared.ts            # Shared prompts + query categorization
 │   │   │   └── sanitizer.ts         # Prompt injection prevention
 │   │   └── security/
 │   │       ├── rate-limiter.ts      # Token-bucket rate limiter
-│   │       ├── input-validator.ts   # Input validation utilities
-│   │       └── headers.ts           # Security HTTP headers
+│   │       └── input-validator.ts   # Input validation utilities
 │   └── types/index.ts               # All shared TypeScript types
 └── middleware.ts                    # Edge middleware (rate limiting + headers)
 ```
@@ -92,16 +93,17 @@ Defense-in-depth security across all layers:
 |---|---|
 | **Rate Limiting** | Token-bucket algorithm (20 req/min) via edge middleware |
 | **Input Validation** | Type-safe validators; length limits; no `any` types |
-| **Prompt Injection** | 13-pattern injection detector in `sanitizer.ts` |
-| **Security Headers** | CSP, X-Frame-Options, HSTS, Permissions-Policy |
+| **Prompt Injection** | 14-pattern injection detector in `sanitizer.ts` |
+| **Security Headers** | Nonce-based CSP, X-Frame-Options, HSTS, Permissions-Policy |
+| **API Key Handling** | Keys sent via headers, never in URLs; server-side only |
 | **No Data Leakage** | Generic error messages; internals never exposed |
-| **HTML Sanitization** | DOMPurify with strict allowlist |
 
 ---
 
 ## ♿ Accessibility (WCAG 2.1 AA)
 
 - `SkipNav` for keyboard navigation past repeated content
+- Floating accessibility toolbar: high-contrast mode + font-size cycling (persisted, respects `prefers-contrast`)
 - All interactive SVG elements: `role="button"`, keyboard (`Enter`/`Space`) support
 - `role="status"` + `aria-live="polite"` for dynamic updates
 - Accessible table alternative to visual heatmap
@@ -113,8 +115,13 @@ Defense-in-depth security across all layers:
 ## 🧪 Testing
 
 ```
-4 test suites · 58 tests · 100% pass rate
+8 test suites · 113 tests · 100% pass rate
 ```
+
+Coverage spans validators, sanitizer, rate limiter, crowd simulator,
+GenAI helpers, the mock provider, and both API route handlers — including
+boundary and edge cases (length limits, type confusion, refill timing,
+match-phase transitions).
 
 ```bash
 npm test              # Run all tests
@@ -157,10 +164,17 @@ Strategy-pattern provider interface enables clean swapping:
 
 ```
 GenAIProvider (interface)
-  └── GroqProvider         ← Default in production (set keys via env)
-  └── MockGenAIProvider    ← Safe fallback (works without API keys)
-  └── GeminiProvider       ← Optional
+  └── GeminiProvider       ← Default (Google Gemini; set GEMINI_API_KEY)
+  └── GroqProvider         ← Alternative (set GROQ_API_KEY / GROQ_API_KEYS)
+  └── MockGenAIProvider    ← Automatic offline fallback (no keys needed)
 ```
+
+If the selected provider is not configured, the factory falls back to the
+mock provider, so the app always runs — including fully offline demos.
+
+**Real-time decision support:** staff chat queries are automatically
+grounded with a live crowd-density snapshot (per-zone occupancy, density
+level, and trend) so the AI answers from current operational data.
 
 The mock provider:
 - Detects 8 languages from input
@@ -169,21 +183,26 @@ The mock provider:
 - Responds in Spanish/French when detected
 - Simulates 200–800ms latency
 
-### Environment setup for Groq
+### Environment setup
 
 ```bash
-# provider selection
-GENAI_PROVIDER=groq
+# provider selection: gemini (default) | groq | mock
+GENAI_PROVIDER=gemini
 
-# use one key
-GROQ_API_KEY=your_key_here
+# --- Google Gemini (default) ---
+GEMINI_API_KEY=your_key_here
+GEMINI_MODEL=gemini-2.0-flash        # optional override
 
-# or key pool (comma-separated) for rotation
-GROQ_API_KEYS=key1,key2,key3
-
-# optional model override
-GROQ_MODEL=llama-3.1-8b-instant
+# --- Groq (alternative) ---
+GROQ_API_KEY=your_key_here           # single key
+GROQ_API_KEYS=key1,key2,key3         # or key pool for rotation
+GROQ_MODEL=llama-3.1-8b-instant      # optional override
 ```
+
+### Google integrations
+
+- **Google Gemini** powers the default GenAI provider (chat, multilingual assistance, operational intelligence)
+- **Google Maps** provides one-tap directions to every venue from the stadium map (deep link, no API key required)
 
 ---
 

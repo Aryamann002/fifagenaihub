@@ -1,8 +1,7 @@
 /**
  * @module GenAI Sanitizer
- * Prompt injection prevention and HTML sanitization utilities.
- * Protects the GenAI layer from malicious user input and ensures
- * generated output is safe for rendering.
+ * Prompt injection prevention for the GenAI layer.
+ * Protects providers from malicious user input.
  */
 
 /** Patterns that indicate prompt injection attempts */
@@ -76,26 +75,4 @@ export function sanitizePrompt(rawPrompt: string): SanitizationResult {
     sanitizedPrompt: sanitized,
     flaggedPatterns,
   };
-}
-
-/**
- * Sanitize HTML content for safe rendering in the browser.
- * Uses DOMPurify to strip potentially dangerous HTML tags and attributes
- * while preserving safe formatting elements.
- *
- * @param html - The raw HTML string to sanitize
- * @returns A safe HTML string with dangerous elements removed
- */
-export function sanitizeHtml(html: string): string {
-  if (!html || typeof html !== 'string') {
-    return '';
-  }
-
-  // Lightweight server-safe HTML sanitization that avoids DOM/jsdom dependencies.
-  const withoutScripts = html
-    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-    .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '');
-  const withoutEventHandlers = withoutScripts.replace(/\s+on\w+="[^"]*"/gi, '');
-  const withoutJsUris = withoutEventHandlers.replace(/javascript:/gi, '');
-  return withoutJsUris.replace(/<\/?[^>]+(>|$)/g, '').trim();
 }

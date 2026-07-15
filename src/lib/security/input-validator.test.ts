@@ -72,6 +72,23 @@ describe('validateChatMessage', () => {
     expect(() => validateChatMessage({})).not.toThrow();
     expect(() => validateChatMessage([])).not.toThrow();
   });
+
+  it('rejects arrays and booleans', () => {
+    expect(validateChatMessage(['Where is Gate B?']).isValid).toBe(false);
+    expect(validateChatMessage(true).isValid).toBe(false);
+  });
+
+  it('rejects a message that is empty after sanitization', () => {
+    // Only HTML tags — nothing meaningful survives stripping
+    const result = validateChatMessage('<div><span></span></div>');
+    expect(result.isValid).toBe(false);
+    expect(result.sanitizedValue).toBe('');
+  });
+
+  it('counts length after trimming surrounding whitespace', () => {
+    const padded = `   ${'a'.repeat(500)}   `;
+    expect(validateChatMessage(padded).isValid).toBe(true);
+  });
 });
 
 describe('validateChatContext', () => {
@@ -104,6 +121,39 @@ describe('validateChatContext', () => {
     const result = validateChatContext(null);
     expect(result.isValid).toBe(false);
   });
+
+  it('rejects arrays', () => {
+    expect(validateChatContext([{ stadiumId: 'metlife', role: 'fan' }]).isValid).toBe(false);
+  });
+
+  it('rejects whitespace-only stadiumId', () => {
+    expect(validateChatContext({ stadiumId: '   ', role: 'fan' }).isValid).toBe(false);
+  });
+
+  it('rejects stadiumId longer than 100 characters', () => {
+    const result = validateChatContext({ stadiumId: 'x'.repeat(101), role: 'fan' });
+    expect(result.isValid).toBe(false);
+  });
+
+  it('rejects non-string role values', () => {
+    expect(validateChatContext({ stadiumId: 'metlife', role: 1 }).isValid).toBe(false);
+  });
+
+  it('accepts an optional valid language', () => {
+    const result = validateChatContext({ stadiumId: 'metlife', role: 'fan', language: 'es' });
+    expect(result.isValid).toBe(true);
+  });
+
+  it('rejects a non-string language', () => {
+    const result = validateChatContext({ stadiumId: 'metlife', role: 'fan', language: 42 });
+    expect(result.isValid).toBe(false);
+  });
+
+  it('collects multiple errors at once', () => {
+    const result = validateChatContext({ role: 'admin', language: 42 });
+    expect(result.isValid).toBe(false);
+    expect(result.errors.length).toBeGreaterThanOrEqual(3);
+  });
 });
 
 describe('validateStadiumId', () => {
@@ -128,6 +178,21 @@ describe('validateStadiumId', () => {
   it('rejects IDs with special characters', () => {
     expect(validateStadiumId('<script>')).toBe(false);
     expect(validateStadiumId('../etc/passwd')).toBe(false);
+  });
+
+  it('enforces the 50-character length boundary', () => {
+    expect(validateStadiumId('a'.repeat(50))).toBe(true);
+    expect(validateStadiumId('a'.repeat(51))).toBe(false);
+  });
+
+  it('rejects IDs with whitespace or unicode', () => {
+    expect(validateStadiumId('met life')).toBe(false);
+    expect(validateStadiumId('stádium')).toBe(false);
+  });
+
+  it('rejects non-string types', () => {
+    expect(validateStadiumId(42)).toBe(false);
+    expect(validateStadiumId(['metlife'])).toBe(false);
   });
 });
 

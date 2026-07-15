@@ -136,10 +136,6 @@ export interface ChatMessage {
   detectedLanguage?: string;
   /** Category of the detected query (assistant only) */
   category?: string;
-  /** AI reasoning explaining the response (assistant only) */
-  reasoning?: string;
-  /** Structured data for complex queries (assistant only) */
-  structuredData?: Record<string, unknown>;
 }
 
 /** Contextual information sent alongside every chat request */
@@ -175,10 +171,6 @@ export interface ChatResponse {
   suggestions?: string[];
   /** Category of the detected query */
   category?: string;
-  /** AI reasoning: why this response was chosen */
-  reasoning?: string;
-  /** Structured data for complex queries */
-  structuredData?: Record<string, unknown>;
 }
 
 // ---------------------------------------------------------------------------

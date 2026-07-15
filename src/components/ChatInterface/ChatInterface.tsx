@@ -23,6 +23,10 @@ interface ChatInterfaceProps {
   title?: string;
   /** Optional placeholder text for the input field */
   placeholder?: string;
+  /** Query injected from outside (e.g. a stadium map zone click) — sent automatically */
+  pendingQuery?: string;
+  /** Called after a pending query has been dispatched */
+  onPendingQueryHandled?: () => void;
 }
 
 /**
@@ -39,24 +43,30 @@ export default function ChatInterface({
   context,
   title = 'AI Assistant',
   placeholder = 'Ask me anything about the stadium...',
+  pendingQuery,
+  onPendingQueryHandled,
 }: ChatInterfaceProps) {
   const { messages, isLoading, error, sendMessage, clearMessages, suggestions } = useChat(context);
   const [inputValue, setInputValue] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const [lastAnnouncement, setLastAnnouncement] = useState('');
+
+  /** Screen reader announcement — derived from the latest assistant message */
+  const lastMessage = messages[messages.length - 1];
+  const lastAnnouncement =
+    lastMessage?.role === 'assistant' ? `AI response: ${lastMessage.content}` : '';
+
+  /** Dispatch queries injected from outside (e.g. stadium map zone clicks) */
+  useEffect(() => {
+    if (pendingQuery) {
+      sendMessage(pendingQuery);
+      onPendingQueryHandled?.();
+    }
+  }, [pendingQuery, sendMessage, onPendingQueryHandled]);
 
   /** Scroll to the latest message when messages change */
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
-
-  /** Announce new assistant messages to screen readers */
-  useEffect(() => {
-    const lastMessage = messages[messages.length - 1];
-    if (lastMessage?.role === 'assistant') {
-      setLastAnnouncement(`AI response: ${lastMessage.content}`);
-    }
   }, [messages]);
 
   /** Handle form submission */
@@ -104,7 +114,6 @@ export default function ChatInterface({
   };
 
   const characterCount = inputValue.length;
-  const isOverLimit = characterCount > MAX_MESSAGE_LENGTH;
   const isInputEmpty = !inputValue.trim();
 
   return (
@@ -206,9 +215,9 @@ export default function ChatInterface({
       {/* Suggestions */}
       {suggestions.length > 0 && !isLoading && (
         <div className={styles.suggestions} role="group" aria-label="Suggested questions">
-          {suggestions.map((suggestion, index) => (
+          {suggestions.map((suggestion) => (
             <button
-              key={index}
+              key={suggestion}
               type="button"
               className={styles.suggestionButton}
               onClick={() => handleSuggestionClick(suggestion)}
@@ -227,7 +236,7 @@ export default function ChatInterface({
         <textarea
           ref={inputRef}
           id="chat-input"
-          className={`${styles.input} ${isOverLimit ? styles.inputError : ''}`}
+          className={styles.input}
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
           onKeyDown={handleKeyDown}
@@ -235,21 +244,16 @@ export default function ChatInterface({
           rows={1}
           disabled={isLoading}
           aria-describedby="char-count keyboard-hint"
-          aria-invalid={isOverLimit}
-          maxLength={MAX_MESSAGE_LENGTH + 50}
+          maxLength={MAX_MESSAGE_LENGTH}
         />
         <div className={styles.inputActions}>
-          <span
-            id="char-count"
-            className={`${styles.charCount} ${isOverLimit ? styles.charCountError : ''}`}
-            aria-live="polite"
-          >
+          <span id="char-count" className={styles.charCount} aria-live="polite">
             {characterCount}/{MAX_MESSAGE_LENGTH}
           </span>
           <button
             type="submit"
             className={styles.sendButton}
-            disabled={isLoading || isInputEmpty || isOverLimit}
+            disabled={isLoading || isInputEmpty}
             aria-label="Send message"
           >
             <svg

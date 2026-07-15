@@ -7,7 +7,24 @@ import { type NextRequest, NextResponse } from 'next/server';
 import { getGenAIProvider } from '@/lib/genai/provider';
 import { sanitizePrompt } from '@/lib/genai/sanitizer';
 import { validateChatMessage, validateChatContext } from '@/lib/security/input-validator';
-import type { ChatRequest, ChatResponse } from '@/types';
+import { getStadiumById } from '@/lib/data/stadiums';
+import { generateCrowdData } from '@/lib/data/crowd-simulator';
+import type { ChatContext, ChatRequest, ChatResponse } from '@/types';
+
+/**
+ * Builds a compact real-time crowd snapshot for staff queries so the AI
+ * grounds its operational answers in live zone data.
+ */
+function buildLiveOpsSummary(stadiumId: string): string {
+  const crowd = generateCrowdData(stadiumId);
+  const zones = crowd.zones
+    .map(
+      (z) =>
+        `${z.name}: ${Math.round((z.currentOccupancy / z.maxCapacity) * 100)}% (${z.densityLevel}, ${z.trend})`,
+    )
+    .join('; ');
+  return `Overall occupancy ${crowd.overallOccupancyPercent}%. Zones — ${zones}.`;
+}
 
 function errorResponse(status: number, message: string): NextResponse {
   return NextResponse.json({ error: message }, { status });
@@ -40,12 +57,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     const sanitization = sanitizePrompt(messageValidation.sanitizedValue);
 
+    const { stadiumId, role, language } = context as ChatContext;
     const provider = getGenAIProvider();
     const genAiContext = {
-      stadiumId: (context as { stadiumId: string }).stadiumId,
-      stadiumName: (context as { stadiumId: string }).stadiumId,
-      role: (context as { role: 'fan' | 'staff' }).role,
-      language: (context as { language?: string }).language,
+      stadiumId,
+      stadiumName: getStadiumById(stadiumId)?.name ?? stadiumId,
+      role,
+      language,
+      // Staff queries get a live crowd snapshot for real-time decision support
+      liveOpsSummary: role === 'staff' ? buildLiveOpsSummary(stadiumId) : undefined,
     };
 
     const genAiResponse = await provider.generateResponse(
@@ -59,8 +79,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       confidence: genAiResponse.confidence,
       suggestions: genAiResponse.suggestions,
       category: genAiResponse.category,
-      reasoning: genAiResponse.reasoning,
-      structuredData: genAiResponse.structuredData,
     };
 
     return NextResponse.json(responseBody, {

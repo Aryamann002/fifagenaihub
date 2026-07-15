@@ -72,6 +72,15 @@ export default function StadiumMap({ stadiumId, onZoneSelect }: StadiumMapProps)
       <p className={styles.capacity}>
         Capacity: {stadium.capacity.toLocaleString('en-US')} seats
       </p>
+      <a
+        className={styles.directionsLink}
+        href={`https://www.google.com/maps/dir/?api=1&destination=${stadium.coordinates.lat},${stadium.coordinates.lng}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label={`Get directions to ${stadium.name} on Google Maps (opens in a new tab)`}
+      >
+        📍 Directions via Google Maps ↗
+      </a>
 
       {/* SVG Stadium Diagram */}
       <div className={styles.mapContainer}>

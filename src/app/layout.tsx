@@ -6,8 +6,25 @@
 
 import type { Metadata, Viewport } from 'next';
 import { headers } from 'next/headers';
+import { Inter, Outfit } from 'next/font/google';
 import './globals.css';
 import SkipNav from '@/components/common/SkipNav/SkipNav';
+import A11yToolbar from '@/components/common/A11yToolbar/A11yToolbar';
+
+// Self-hosted via next/font — no runtime requests to Google Fonts
+const inter = Inter({
+  subsets: ['latin'],
+  weight: ['300', '400', '500', '600', '700'],
+  variable: '--font-inter',
+  display: 'swap',
+});
+
+const outfit = Outfit({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700', '800'],
+  variable: '--font-outfit',
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
   title: {
@@ -44,24 +61,20 @@ interface RootLayoutProps {
 }
 
 export default async function RootLayout({ children }: RootLayoutProps) {
-  const nonce = (await headers()).get('x-nonce') ?? '';
+  // Force per-request rendering: the CSP nonce (set by middleware on the
+  // request headers) is only injected into Next.js inline scripts when the
+  // page renders dynamically. Static HTML would ship un-nonced scripts that
+  // the CSP blocks, breaking hydration.
+  await headers();
 
   return (
-    <html lang="en" suppressHydrationWarning>
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap"
-          rel="stylesheet"
-          nonce={nonce}
-        />
-      </head>
+    <html lang="en" className={`${inter.variable} ${outfit.variable}`} suppressHydrationWarning>
       <body>
         <SkipNav />
         <main id="main-content" tabIndex={-1}>
           {children}
         </main>
+        <A11yToolbar />
       </body>
     </html>
   );
