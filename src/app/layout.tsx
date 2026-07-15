@@ -5,11 +5,15 @@
  */
 
 import type { Metadata, Viewport } from 'next';
-import { headers } from 'next/headers';
 import { Inter, Outfit } from 'next/font/google';
 import './globals.css';
 import SkipNav from '@/components/common/SkipNav/SkipNav';
 import A11yToolbar from '@/components/common/A11yToolbar/A11yToolbar';
+
+// Render dynamically so middleware's per-request CSP nonce is injected into
+// Next's inline scripts. Static prerendering would ship un-nonced scripts that
+// the Content-Security-Policy blocks, breaking hydration.
+export const dynamic = 'force-dynamic';
 
 // Self-hosted via next/font — no runtime requests to Google Fonts
 const inter = Inter({
@@ -60,13 +64,7 @@ interface RootLayoutProps {
   children: React.ReactNode;
 }
 
-export default async function RootLayout({ children }: RootLayoutProps) {
-  // Force per-request rendering: the CSP nonce (set by middleware on the
-  // request headers) is only injected into Next.js inline scripts when the
-  // page renders dynamically. Static HTML would ship un-nonced scripts that
-  // the CSP blocks, breaking hydration.
-  await headers();
-
+export default function RootLayout({ children }: RootLayoutProps) {
   return (
     <html lang="en" className={`${inter.variable} ${outfit.variable}`} suppressHydrationWarning>
       <body>

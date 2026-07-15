@@ -26,6 +26,32 @@ function buildLiveOpsSummary(stadiumId: string): string {
   return `Overall occupancy ${crowd.overallOccupancyPercent}%. Zones — ${zones}.`;
 }
 
+/** Maximum number of prior turns forwarded to the provider */
+const MAX_HISTORY = 8;
+
+/**
+ * Extract prior conversation turns from an untrusted request body.
+ * Keeps only well-formed user/assistant messages (last {@link MAX_HISTORY}),
+ * running each through the prompt sanitizer since client-supplied history
+ * reaches the provider's conversation context.
+ */
+function parseHistory(body: unknown): Array<{ role: 'user' | 'assistant'; content: string }> | undefined {
+  const raw = (body as { previousMessages?: unknown }).previousMessages;
+  if (!Array.isArray(raw)) return undefined;
+
+  const history: Array<{ role: 'user' | 'assistant'; content: string }> = [];
+  for (const m of raw.slice(-MAX_HISTORY)) {
+    if (!m || typeof m !== 'object') continue;
+    const role = (m as { role?: unknown }).role;
+    const content = (m as { content?: unknown }).content;
+    if ((role === 'user' || role === 'assistant') && typeof content === 'string') {
+      const clean = sanitizePrompt(content).sanitizedPrompt;
+      if (clean.length > 0) history.push({ role, content: clean });
+    }
+  }
+  return history.length > 0 ? history : undefined;
+}
+
 function errorResponse(status: number, message: string): NextResponse {
   return NextResponse.json({ error: message }, { status });
 }
@@ -58,12 +84,18 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const sanitization = sanitizePrompt(messageValidation.sanitizedValue);
 
     const { stadiumId, role, language } = context as ChatContext;
+    const stadium = getStadiumById(stadiumId);
+    if (!stadium) {
+      return errorResponse(400, 'Unknown stadium.');
+    }
+
     const provider = getGenAIProvider();
     const genAiContext = {
       stadiumId,
-      stadiumName: getStadiumById(stadiumId)?.name ?? stadiumId,
+      stadiumName: stadium.name,
       role,
       language,
+      previousMessages: parseHistory(body),
       // Staff queries get a live crowd snapshot for real-time decision support
       liveOpsSummary: role === 'staff' ? buildLiveOpsSummary(stadiumId) : undefined,
     };

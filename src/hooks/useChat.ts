@@ -7,8 +7,11 @@
 
 'use client';
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import type { ChatMessage, ChatContext, ChatResponse } from '@/types';
+
+/** How many prior turns to send as conversation context */
+const MAX_HISTORY = 8;
 
 /** Return type for the useChat hook */
 interface UseChatReturn {
@@ -39,6 +42,14 @@ export function useChat(context: ChatContext): UseChatReturn {
   const [error, setError] = useState<string | null>(null);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const abortControllerRef = useRef<AbortController | null>(null);
+  // Ref-mirrored so sendMessage can guard re-entry and read history without
+  // depending on isLoading/messages — keeping its identity stable.
+  const isLoadingRef = useRef(false);
+  const messagesRef = useRef<ChatMessage[]>([]);
+
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
 
   /** Generates a unique message ID */
   const generateId = (): string => {
@@ -52,13 +63,18 @@ export function useChat(context: ChatContext): UseChatReturn {
   const sendMessage = useCallback(
     async (content: string) => {
       const trimmedContent = content.trim();
-      if (!trimmedContent || isLoading) return;
+      if (!trimmedContent || isLoadingRef.current) return;
 
-      // Cancel any in-flight request
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
-      abortControllerRef.current = new AbortController();
+      // Supersede any in-flight request
+      abortControllerRef.current?.abort();
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
+
+      // Prior turns (before this message) become conversation context
+      const previousMessages = messagesRef.current
+        .filter((m) => m.role === 'user' || m.role === 'assistant')
+        .slice(-MAX_HISTORY)
+        .map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content }));
 
       // Optimistic update: add user message immediately
       const userMessage: ChatMessage = {
@@ -69,6 +85,7 @@ export function useChat(context: ChatContext): UseChatReturn {
       };
 
       setMessages((prev) => [...prev, userMessage]);
+      isLoadingRef.current = true;
       setIsLoading(true);
       setError(null);
       setSuggestions([]);
@@ -77,8 +94,8 @@ export function useChat(context: ChatContext): UseChatReturn {
         const response = await fetch('/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: trimmedContent, context }),
-          signal: abortControllerRef.current.signal,
+          body: JSON.stringify({ message: trimmedContent, context, previousMessages }),
+          signal: controller.signal,
         });
 
         if (!response.ok) {
@@ -109,10 +126,15 @@ export function useChat(context: ChatContext): UseChatReturn {
           err instanceof Error ? err.message : 'An unexpected error occurred. Please try again.';
         setError(errorMessage);
       } finally {
-        setIsLoading(false);
+        // Only clear loading if this is still the active request; a superseded
+        // request settling later must not clobber a newer send's state.
+        if (abortControllerRef.current === controller) {
+          isLoadingRef.current = false;
+          setIsLoading(false);
+        }
       }
     },
-    [context, isLoading],
+    [context],
   );
 
   /** Clears all messages, errors, and suggestions */
@@ -123,6 +145,7 @@ export function useChat(context: ChatContext): UseChatReturn {
     setMessages([]);
     setError(null);
     setSuggestions([]);
+    isLoadingRef.current = false;
     setIsLoading(false);
   }, []);
 

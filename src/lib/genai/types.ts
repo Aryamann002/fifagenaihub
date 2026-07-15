@@ -19,7 +19,6 @@ export interface GenAIContext {
   /**
    * Live operational snapshot (crowd density per zone) injected for staff
    * queries so LLM providers can ground answers in real-time data.
-   * Ignored by the offline mock provider.
    */
   liveOpsSummary?: string;
 }

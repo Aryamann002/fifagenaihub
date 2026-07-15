@@ -237,13 +237,21 @@ export function getMatchesByStadium(stadiumId: string): Match[] {
 }
 
 /**
- * Retrieve matches scheduled for today (based on local system date).
- * Compares only the date portion (YYYY-MM-DD) of each match's dateTime.
+ * Retrieve matches taking place on the current UTC calendar day.
+ * Both sides are normalized to UTC (each match's dateTime carries a venue
+ * offset), so a match near midnight is not misclassified when the local and
+ * UTC dates differ — comparing the raw offset-local string prefix against a
+ * UTC "today" would drop in-progress evening matches once UTC rolls over.
  * @returns Array of today's matches
  */
 export function getTodaysMatches(): Match[] {
-  const today = new Date().toISOString().slice(0, 10);
-  return MATCHES.filter((match) => match.dateTime.slice(0, 10) === today);
+  const todayUtc = new Date().toISOString().slice(0, 10);
+  return MATCHES.filter((match) => {
+    const kickoff = new Date(match.dateTime);
+    // Guard against a malformed dateTime: toISOString() throws on an Invalid
+    // Date, which would crash the landing-page render over one bad entry.
+    return !Number.isNaN(kickoff.getTime()) && kickoff.toISOString().slice(0, 10) === todayUtc;
+  });
 }
 
 /**

@@ -1,7 +1,8 @@
 /**
  * useAccessibility — Custom hook for managing user accessibility preferences.
- * Reads system preferences (prefers-reduced-motion, prefers-contrast) and
- * manages user-toggled settings (high contrast, font size) persisted to localStorage.
+ * Reads the system prefers-contrast setting and manages user-toggled settings
+ * (high contrast, font size) persisted to localStorage. Reduced motion is
+ * handled natively by CSS (@media prefers-reduced-motion), not tracked here.
  * @module hooks/useAccessibility
  */
 
@@ -10,10 +11,12 @@
 import { useState, useEffect, useCallback, useSyncExternalStore } from 'react';
 import type { AccessibilityPreferences } from '@/types';
 
+/** Valid font-size values, used to reject corrupt persisted data */
+const VALID_FONT_SIZES: AccessibilityPreferences['fontSize'][] = ['normal', 'large', 'extra-large'];
+
 /** Default accessibility preferences */
 const DEFAULT_PREFERENCES: AccessibilityPreferences = {
   highContrast: false,
-  reducedMotion: false,
   fontSize: 'normal',
 };
 
@@ -35,8 +38,6 @@ function getInitialPreferences(): AccessibilityPreferences {
   return {
     highContrast:
       saved?.highContrast ?? window.matchMedia('(prefers-contrast: more)').matches,
-    reducedMotion:
-      saved?.reducedMotion ?? window.matchMedia('(prefers-reduced-motion: reduce)').matches,
     fontSize: saved?.fontSize ?? 'normal',
   };
 }
@@ -58,26 +59,16 @@ export function useAccessibility() {
     () => false,
   );
 
-  // Subscribe to system preference changes
+  // Track system prefers-contrast changes
   useEffect(() => {
-    const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
     const contrastQuery = window.matchMedia('(prefers-contrast: more)');
-
-    const handleMotionChange = (event: MediaQueryListEvent) => {
-      setPreferences((prev) => ({ ...prev, reducedMotion: event.matches }));
-    };
 
     const handleContrastChange = (event: MediaQueryListEvent) => {
       setPreferences((prev) => ({ ...prev, highContrast: event.matches }));
     };
 
-    motionQuery.addEventListener('change', handleMotionChange);
     contrastQuery.addEventListener('change', handleContrastChange);
-
-    return () => {
-      motionQuery.removeEventListener('change', handleMotionChange);
-      contrastQuery.removeEventListener('change', handleContrastChange);
-    };
+    return () => contrastQuery.removeEventListener('change', handleContrastChange);
   }, []);
 
   // Apply CSS classes to document root and persist when preferences change
@@ -99,10 +90,9 @@ export function useAccessibility() {
   /** Cycle through font size options: normal → large → extra-large → normal */
   const cycleFontSize = useCallback(() => {
     setPreferences((prev) => {
-      const sizes: AccessibilityPreferences['fontSize'][] = ['normal', 'large', 'extra-large'];
-      const currentIndex = sizes.indexOf(prev.fontSize);
-      const nextIndex = (currentIndex + 1) % sizes.length;
-      return { ...prev, fontSize: sizes[nextIndex] };
+      const currentIndex = VALID_FONT_SIZES.indexOf(prev.fontSize);
+      const nextIndex = (currentIndex + 1) % VALID_FONT_SIZES.length;
+      return { ...prev, fontSize: VALID_FONT_SIZES[nextIndex] };
     });
   }, []);
 
@@ -126,14 +116,28 @@ export function useAccessibility() {
 }
 
 /**
- * Loads saved accessibility preferences from localStorage.
- * Returns null if no preferences are saved or localStorage is unavailable.
+ * Loads saved accessibility preferences from localStorage, validating each
+ * field so corrupt or legacy values never reach the UI. Only well-formed
+ * fields are returned (as a partial), letting callers fall back to system
+ * defaults for anything missing or invalid.
+ * Returns null if nothing is saved or localStorage is unavailable.
  */
-function loadSavedPreferences(): AccessibilityPreferences | null {
+function loadSavedPreferences(): Partial<AccessibilityPreferences> | null {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (!saved) return null;
-    return JSON.parse(saved) as AccessibilityPreferences;
+
+    const parsed = JSON.parse(saved) as Record<string, unknown>;
+    const prefs: Partial<AccessibilityPreferences> = {};
+
+    if (typeof parsed.highContrast === 'boolean') {
+      prefs.highContrast = parsed.highContrast;
+    }
+    if (VALID_FONT_SIZES.includes(parsed.fontSize as AccessibilityPreferences['fontSize'])) {
+      prefs.fontSize = parsed.fontSize as AccessibilityPreferences['fontSize'];
+    }
+
+    return prefs;
   } catch {
     return null;
   }

@@ -7,8 +7,8 @@
 /** Maximum allowed message length in characters */
 const MAX_MESSAGE_LENGTH = 500;
 
-/** Maximum allowed context field length in characters */
-const MAX_CONTEXT_LENGTH = 100;
+/** Accepted language codes: ISO 639-style, optionally region-suffixed (e.g. "en", "pt-BR") */
+const LANGUAGE_PATTERN = /^[a-zA-Z]{2,3}(-[a-zA-Z]{2,4})?$/;
 
 /** Regex that matches common HTML tags and script patterns */
 const HTML_TAG_PATTERN = /<\/?[a-z][a-z0-9]*\b[^>]*>/gi;
@@ -139,11 +139,12 @@ export function validateChatContext(context: unknown): ContextValidationResult {
   const errors: string[] = [];
   const record = context as Record<string, unknown>;
 
-  // Validate required stadiumId field
-  if (!record.stadiumId || typeof record.stadiumId !== 'string' || (record.stadiumId as string).trim().length === 0) {
-    errors.push('Context field "stadiumId" is required and must be a non-empty string.');
-  } else if ((record.stadiumId as string).length > MAX_CONTEXT_LENGTH) {
-    errors.push(`Context field "stadiumId" must not exceed ${MAX_CONTEXT_LENGTH} characters.`);
+  // Validate required stadiumId with the same strict format used everywhere else.
+  // This is a trust boundary: stadiumId flows into the GenAI system prompt (as the
+  // resolved stadium name, or the raw id as fallback), so it must not carry
+  // free-form text that could be used for prompt injection.
+  if (!validateStadiumId(record.stadiumId)) {
+    errors.push('Context field "stadiumId" is required and must be alphanumeric (with hyphens), 1–50 characters.');
   }
 
   // Validate required role field
@@ -152,12 +153,11 @@ export function validateChatContext(context: unknown): ContextValidationResult {
     errors.push(`Context field "role" must be one of: ${validRoles.join(', ')}.`);
   }
 
-  // Validate optional language field if present
+  // Validate optional language field — constrained to a language code so it
+  // cannot be used to inject instructions via the "Respond in ${language}" prompt.
   if (record.language !== undefined) {
-    if (typeof record.language !== 'string') {
-      errors.push('Context field "language" must be a string.');
-    } else if ((record.language as string).length > MAX_CONTEXT_LENGTH) {
-      errors.push(`Context field "language" must not exceed ${MAX_CONTEXT_LENGTH} characters.`);
+    if (typeof record.language !== 'string' || !LANGUAGE_PATTERN.test(record.language)) {
+      errors.push('Context field "language" must be a valid language code (e.g. "en", "pt-BR").');
     }
   }
 

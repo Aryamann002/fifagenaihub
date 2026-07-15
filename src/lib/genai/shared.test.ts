@@ -3,7 +3,12 @@
  * @module lib/genai/shared.test
  */
 
-import { SYSTEM_INSTRUCTIONS, detectCategory, extractSuggestions } from '@/lib/genai/shared';
+import {
+  SYSTEM_INSTRUCTIONS,
+  buildSystemMessage,
+  detectCategory,
+  extractSuggestions,
+} from '@/lib/genai/shared';
 
 describe('detectCategory', () => {
   it('detects each category from representative queries', () => {
@@ -61,5 +66,23 @@ describe('SYSTEM_INSTRUCTIONS', () => {
     const prompt = SYSTEM_INSTRUCTIONS.staff('SoFi Stadium', 'English');
     expect(prompt).toContain('SoFi Stadium');
     expect(prompt).toContain('operational intelligence');
+  });
+});
+
+describe('buildSystemMessage', () => {
+  it('returns role instructions unchanged when no live snapshot is given', () => {
+    const message = buildSystemMessage('fan', 'MetLife Stadium', 'es');
+    expect(message).toBe(SYSTEM_INSTRUCTIONS.fan('MetLife Stadium', 'es'));
+  });
+
+  it('defaults the language to English when omitted', () => {
+    const message = buildSystemMessage('fan', 'MetLife Stadium');
+    expect(message).toContain('English');
+  });
+
+  it('appends the live operational snapshot when provided', () => {
+    const message = buildSystemMessage('staff', 'SoFi Stadium', 'English', 'Gate A at 92% (critical)');
+    expect(message).toContain('Live operational snapshot');
+    expect(message).toContain('Gate A at 92% (critical)');
   });
 });

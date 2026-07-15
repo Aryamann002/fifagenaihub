@@ -36,7 +36,6 @@ function getCurrentMatchPhase(): MatchPhase {
 
   const minutesFromKickoff = minuteOfDay - kickoffMinute;
 
-  if (minutesFromKickoff < -90) return 'pre_match';
   if (minutesFromKickoff < -10) return 'pre_match';
   if (minutesFromKickoff < 5) return 'kickoff';
   if (minutesFromKickoff < 45) return 'first_half';

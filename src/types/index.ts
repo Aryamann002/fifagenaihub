@@ -157,6 +157,8 @@ export interface ChatRequest {
   message: string;
   /** Contextual metadata */
   context: ChatContext;
+  /** Prior conversation turns for multi-turn context (most recent last) */
+  previousMessages?: Array<{ role: 'user' | 'assistant'; content: string }>;
 }
 
 /** Response returned by the GenAI chat API */
@@ -220,8 +222,6 @@ export interface CrowdData {
 export interface AccessibilityPreferences {
   /** Enable high-contrast color mode */
   highContrast: boolean;
-  /** Reduce or disable animations */
-  reducedMotion: boolean;
   /** Preferred font size */
   fontSize: 'normal' | 'large' | 'extra-large';
 }

@@ -6,7 +6,7 @@
 
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Suspense } from 'react';
 import { STADIUMS } from '@/lib/data/stadiums';
@@ -34,11 +34,14 @@ function FanPortalContent() {
   const [pendingChatQuery, setPendingChatQuery] = useState<string>('');
   const [activePanel, setActivePanel] = useState<'map' | 'green'>('map');
 
-  const chatContext: ChatContext = {
-    stadiumId: stadium.id,
-    role: 'fan',
-    language: language !== 'en' ? language : undefined,
-  };
+  const chatContext: ChatContext = useMemo(
+    () => ({
+      stadiumId: stadium.id,
+      role: 'fan',
+      language: language !== 'en' ? language : undefined,
+    }),
+    [stadium.id, language],
+  );
 
   /** Called by StadiumMap when a zone is clicked — sends the query to the chat */
   const handleZoneSelect = useCallback((query: string) => {

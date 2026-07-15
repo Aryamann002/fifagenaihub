@@ -6,7 +6,7 @@
 
 import { GenAIProvider } from './provider';
 import { GenAIContext, GenAIResponse } from './types';
-import { SYSTEM_INSTRUCTIONS, detectCategory, extractSuggestions } from './shared';
+import { buildSystemMessage, detectCategory, extractSuggestions } from './shared';
 
 const DEFAULT_MODEL = 'gemini-2.0-flash';
 const GEMINI_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/models';
@@ -56,13 +56,12 @@ export class GeminiProvider implements GenAIProvider {
       };
     }
 
-    let systemInstruction = SYSTEM_INSTRUCTIONS[context.role](
+    const systemInstruction = buildSystemMessage(
+      context.role,
       context.stadiumName,
-      context.language || 'English',
+      context.language,
+      context.liveOpsSummary,
     );
-    if (context.liveOpsSummary) {
-      systemInstruction += `\n\nLive operational snapshot (use this real-time data in your answer):\n${context.liveOpsSummary}`;
-    }
 
     const category = detectCategory(prompt);
 

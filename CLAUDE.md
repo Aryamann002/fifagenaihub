@@ -3,7 +3,7 @@
 ## Status: BUILD COMPLETE ✅
 
 **Last Updated:** 2026-07-15
-**Build Status:** PASSING (Next.js build ✅, 113 tests ✅, TypeScript ✅)
+**Build Status:** PASSING (Next.js build ✅, 206 tests ✅, ~85% coverage ✅, TypeScript ✅, ESLint ✅)
 
 ---
 
@@ -46,13 +46,12 @@ src/
 ├── lib/
 │   ├── data/
 │   │   ├── crowd-simulator.ts      ← Time-aware crowd simulation (+ tests)
-│   │   ├── matches.ts              ← 20 sample matches
+│   │   ├── matches.ts              ← 19 sample matches
 │   │   ├── stadiums.ts             ← All 16 FIFA 2026 venues
 │   │   └── sustainability.ts       ← Green score calculator
 │   ├── genai/
 │   │   ├── gemini-provider.ts      ← Google Gemini (DEFAULT provider)
 │   │   ├── groq-provider.ts        ← Groq alternative
-│   │   ├── mock-provider.ts        ← Offline fallback engine (+ tests)
 │   │   ├── provider.ts             ← Strategy-pattern factory
 │   │   ├── shared.ts               ← Shared prompts, detectCategory,
 │   │   │                             extractSuggestions (+ tests)
@@ -75,9 +74,11 @@ Root:
 ## Key Technical Decisions
 
 ### GenAI provider selection
-`GENAI_PROVIDER` env var: `gemini` (default) | `groq` | `mock`.
-The factory in `provider.ts` falls back to the mock provider whenever the
-selected provider's API key is missing — the app must always work offline.
+`GENAI_PROVIDER` env var: `gemini` (default) | `groq`.
+The factory in `provider.ts` returns the selected real provider; Gemini is
+the default and the fallback for any unrecognized value. A real API key
+(Groq or Gemini) is required — without one, the provider returns a graceful
+"not configured" reply rather than crashing (the factory never throws).
 Shared prompt templates and query categorization live in `lib/genai/shared.ts`;
 providers must not duplicate them.
 
@@ -88,12 +89,19 @@ LLM providers ground operational answers in current zone data.
 
 ### Security headers
 All security headers (including the nonce-based CSP) are set in
-`middleware.ts`. `next.config.ts` intentionally has none. The nonce flows
-to `layout.tsx` via the `x-nonce` request header.
+`middleware.ts`. `next.config.ts` intentionally has none. Middleware generates
+a per-request nonce and sets the CSP on both the request and response headers;
+Next.js reads the nonce from the request-header CSP and injects it into its
+inline scripts. The root layout sets `export const dynamic = 'force-dynamic'`
+so pages render per-request — required for that nonce injection to happen.
 
 ### validateChatContext
-Required fields: `stadiumId` (non-empty string) and `role` (`fan`|`staff`);
-`language` is optional. `null` input → `isValid: false`.
+Required fields: `stadiumId` (must match the strict `/^[a-zA-Z0-9-]{1,50}$/`
+format via `validateStadiumId` — free-form text is rejected, since it flows
+into the provider system prompt) and `role` (`fan`|`staff`). `language` is
+optional but, when present, must be a language code (`/^[a-zA-Z]{2,3}(-[a-zA-Z]{2,4})?$/`,
+e.g. `es`, `pt-BR`). `null` input → `isValid: false`. The chat route
+additionally 400s a well-formed `stadiumId` that resolves to no real venue.
 
 ### Stadium IDs
 `metlife`, `sofi`, `att`, `hardrock`, `nrg`, `mercedesbenz`, `levis`,
@@ -108,10 +116,13 @@ Time-aware data keyed to a 20:00 UTC kickoff. Six phases: `pre_match`,
 
 ## Test Results (as of last run)
 ```
-Test Suites: 8 passed, 8 total
-Tests:       113 passed, 113 total
+Test Suites: 20 passed, 20 total
+Tests:       206 passed, 206 total
+Coverage:    ~85% lines (80/80/75/70 thresholds enforced — `npm run test:coverage` must exit 0)
 ```
 API route tests run under `@jest-environment node` (docblock per file).
+Component tests use Testing Library + jest-axe (shims for matchMedia and
+scrollIntoView live in `jest.setup.ts`; jest-axe types in `src/types/jest-axe.d.ts`).
 
 ---
 

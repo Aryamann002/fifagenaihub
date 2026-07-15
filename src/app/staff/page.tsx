@@ -6,7 +6,7 @@
 
 'use client';
 
-import { useState, Suspense } from 'react';
+import { useState, useMemo, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { STADIUMS } from '@/lib/data/stadiums';
 import ChatInterface from '@/components/ChatInterface/ChatInterface';
@@ -41,10 +41,13 @@ function StaffDashboardContent() {
 
   const [dismissedAlerts, setDismissedAlerts] = useState<Set<string>>(new Set());
 
-  const chatContext: ChatContext = {
-    stadiumId: stadium.id,
-    role: 'staff',
-  };
+  const chatContext: ChatContext = useMemo(
+    () => ({
+      stadiumId: stadium.id,
+      role: 'staff',
+    }),
+    [stadium.id],
+  );
 
   const activeAlerts = SAMPLE_ALERTS.filter((a) => !dismissedAlerts.has(a.id));
 

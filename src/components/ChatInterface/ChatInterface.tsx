@@ -56,13 +56,17 @@ export default function ChatInterface({
   const lastAnnouncement =
     lastMessage?.role === 'assistant' ? `AI response: ${lastMessage.content}` : '';
 
-  /** Dispatch queries injected from outside (e.g. stadium map zone clicks) */
+  /**
+   * Dispatch queries injected from outside (e.g. stadium map zone clicks).
+   * Waits until any in-flight request finishes so the query is never dropped
+   * by useChat's re-entry guard.
+   */
   useEffect(() => {
-    if (pendingQuery) {
+    if (pendingQuery && !isLoading) {
       sendMessage(pendingQuery);
       onPendingQueryHandled?.();
     }
-  }, [pendingQuery, sendMessage, onPendingQueryHandled]);
+  }, [pendingQuery, isLoading, sendMessage, onPendingQueryHandled]);
 
   /** Scroll to the latest message when messages change */
   useEffect(() => {

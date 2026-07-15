@@ -20,8 +20,10 @@ function getClientIp(request: NextRequest): string {
 export function middleware(request: NextRequest): NextResponse {
   const { pathname } = request.nextUrl;
 
-  // Rate-limit API routes
-  if (pathname.startsWith('/api/')) {
+  // Rate-limit the AI endpoint (real provider cost). /api/crowd is exempt: it's
+  // cheap, read-only simulated data that the staff dashboard polls every 5s, so
+  // sharing the bucket would let the dashboard rate-limit the chat against itself.
+  if (pathname.startsWith('/api/') && pathname !== '/api/crowd') {
     const clientIp = getClientIp(request);
     const maxRequests = parseInt(process.env.RATE_LIMIT_MAX_REQUESTS ?? '20', 10);
     const windowMs = parseInt(process.env.RATE_LIMIT_WINDOW_MS ?? '60000', 10);
@@ -61,7 +63,6 @@ export function middleware(request: NextRequest): NextResponse {
   // The CSP must also be on the *request* headers: Next.js reads the nonce
   // from there and applies it to its own inline scripts during rendering.
   const requestHeaders = new Headers(request.headers);
-  requestHeaders.set('x-nonce', nonce);
   requestHeaders.set('Content-Security-Policy', csp);
 
   const response = NextResponse.next({

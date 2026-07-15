@@ -52,8 +52,12 @@ export default function StadiumMap({ stadiumId, onZoneSelect }: StadiumMapProps)
   const zones = Array.from(new Set(stadium.facilities.map((f) => f.zone)));
 
   const handleZoneActivate = (zoneName: string) => {
-    setActiveZone(zoneName === activeZone ? null : zoneName);
-    onZoneSelect?.(`How do I navigate to ${zoneName} at ${stadium.name}?`);
+    const isSelecting = zoneName !== activeZone;
+    setActiveZone(isSelecting ? zoneName : null);
+    // Only fire the AI query when selecting — deselecting must not re-send it
+    if (isSelecting) {
+      onZoneSelect?.(`How do I navigate to ${zoneName} at ${stadium.name}?`);
+    }
   };
 
   const handleKeyDown = (event: KeyboardEvent, zoneName: string) => {
@@ -87,8 +91,8 @@ export default function StadiumMap({ stadiumId, onZoneSelect }: StadiumMapProps)
         <svg
           viewBox="0 0 400 320"
           className={styles.map}
-          role="img"
-          aria-label={`Schematic diagram of ${stadium.name} showing ${zones.length} zones`}
+          role="group"
+          aria-label={`Schematic diagram of ${stadium.name} showing ${zones.length} interactive zones`}
           focusable="false"
         >
           {/* Outer stadium border */}
@@ -117,7 +121,7 @@ export default function StadiumMap({ stadiumId, onZoneSelect }: StadiumMapProps)
             dominantBaseline="middle"
             fill="var(--color-text-muted)"
             fontSize="9"
-            fontFamily="Inter, sans-serif"
+            fontFamily="var(--font-body)"
           >
             ⚽ Pitch
           </text>
@@ -155,7 +159,7 @@ export default function StadiumMap({ stadiumId, onZoneSelect }: StadiumMapProps)
                   fill={isActive ? 'var(--color-accent-cyan)' : 'var(--color-text-secondary)'}
                   fontSize="7.5"
                   fontWeight={isActive ? '700' : '400'}
-                  fontFamily="Inter, sans-serif"
+                  fontFamily="var(--font-body)"
                   pointerEvents="none"
                 >
                   {zone.length > 12 ? zone.substring(0, 10) + '…' : zone}
@@ -177,28 +181,24 @@ export default function StadiumMap({ stadiumId, onZoneSelect }: StadiumMapProps)
       {/* Facility Grid */}
       <div className={styles.facilities}>
         <h4 className={styles.facilitiesTitle}>Facilities</h4>
-        <div
-          className={styles.facilityGrid}
-          role="list"
-          aria-label="Stadium facilities"
-        >
+        <ul className={styles.facilityGrid} aria-label="Stadium facilities">
           {stadium.facilities.map((facility) => (
-            <button
-              key={facility.id}
-              type="button"
-              role="listitem"
-              className={`${styles.facilityChip} ${activeZone === facility.zone ? styles.facilityChipActive : ''}`}
-              onClick={() => handleZoneActivate(facility.zone)}
-              aria-label={`${facility.name} in ${facility.zone}${facility.accessible ? ', wheelchair accessible' : ''}`}
-            >
-              <span aria-hidden="true">{FACILITY_ICONS[facility.type]}</span>
-              <span className={styles.facilityName}>{facility.name}</span>
-              {facility.accessible && (
-                <span className={styles.accessBadge} aria-label="Accessible">♿</span>
-              )}
-            </button>
+            <li key={facility.id} className={styles.facilityItem}>
+              <button
+                type="button"
+                className={`${styles.facilityChip} ${activeZone === facility.zone ? styles.facilityChipActive : ''}`}
+                onClick={() => handleZoneActivate(facility.zone)}
+                aria-label={`${facility.name} in ${facility.zone}${facility.accessible ? ', wheelchair accessible' : ''}`}
+              >
+                <span aria-hidden="true">{FACILITY_ICONS[facility.type]}</span>
+                <span className={styles.facilityName}>{facility.name}</span>
+                {facility.accessible && (
+                  <span className={styles.accessBadge} aria-label="Accessible">♿</span>
+                )}
+              </button>
+            </li>
           ))}
-        </div>
+        </ul>
       </div>
     </section>
   );

@@ -1,7 +1,7 @@
 /**
  * @module GenAI Shared
  * Prompt templates and lightweight NLU helpers shared by all providers
- * (Gemini, Groq, and the offline mock). One source of truth — providers
+ * (Gemini and Groq). One source of truth — providers
  * must not redefine these.
  */
 
@@ -40,6 +40,30 @@ Guidelines:
 
 Topics you can help with: Staff Navigation, Concession Operations, Accessibility Services, Transit & Egress, Sustainability Metrics, Match Operations, Emergency Protocol, Crowd Management.`,
 };
+
+/**
+ * Build the full system message for a provider: role-specific instructions
+ * plus, when present, a live operational snapshot for grounding staff answers.
+ * The single source of truth so Gemini and Groq cannot drift.
+ *
+ * @param role - fan or staff
+ * @param stadiumName - resolved stadium display name
+ * @param language - preferred response language (defaults to English)
+ * @param liveOpsSummary - optional real-time crowd snapshot to append
+ * @returns The complete system instruction string
+ */
+export function buildSystemMessage(
+  role: GenAIContext['role'],
+  stadiumName: string,
+  language?: string,
+  liveOpsSummary?: string,
+): string {
+  let message = SYSTEM_INSTRUCTIONS[role](stadiumName, language || 'English');
+  if (liveOpsSummary) {
+    message += `\n\nLive operational snapshot (use this real-time data in your answer):\n${liveOpsSummary}`;
+  }
+  return message;
+}
 
 /** Keyword-to-category mapping for query classification (includes multilingual cues) */
 const CATEGORY_KEYWORDS: Record<QueryCategory, string[]> = {

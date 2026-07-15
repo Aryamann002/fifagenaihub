@@ -6,7 +6,7 @@
 
 import { GenAIProvider } from './provider';
 import { GenAIContext, GenAIResponse } from './types';
-import { SYSTEM_INSTRUCTIONS, detectCategory, extractSuggestions } from './shared';
+import { buildSystemMessage, detectCategory, extractSuggestions } from './shared';
 
 const DEFAULT_MODEL = 'llama-3.1-8b-instant';
 const GROQ_CHAT_URL = 'https://api.groq.com/openai/v1/chat/completions';
@@ -39,13 +39,12 @@ export class GroqProvider implements GenAIProvider {
       };
     }
 
-    let systemMessage = SYSTEM_INSTRUCTIONS[context.role](
+    const systemMessage = buildSystemMessage(
+      context.role,
       context.stadiumName,
-      context.language || 'English',
+      context.language,
+      context.liveOpsSummary,
     );
-    if (context.liveOpsSummary) {
-      systemMessage += `\n\nLive operational snapshot (use this real-time data in your answer):\n${context.liveOpsSummary}`;
-    }
 
     const category = detectCategory(prompt);
     const messages = this.buildMessages(prompt, systemMessage, context);
