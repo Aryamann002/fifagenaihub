@@ -1,5 +1,5 @@
 # FanHub 26
-
+****59th Rank, Top 100 in PromptWarsVirtual Hosted by Hack2Skills and Google For Developers****
 A web app for the FIFA World Cup 2026 that helps fans and stadium staff. It uses
 generative AI for a chat assistant, and for staff it feeds live crowd numbers into
 the AI so its answers reflect what is happening at the venue right now.
